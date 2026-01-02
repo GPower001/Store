@@ -1,0 +1,207 @@
+body {
+    font-family: sans-serif;
+    background-color: #fcf4fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.content {
+    background-color: #fff;
+    border-radius: 40px;
+    position: relative;
+    overflow: hidden;
+    width: 50vw;
+    min-height: 480px;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Buttons */
+.content button {
+    background-color: #42aeb5;
+    color: #fff;
+    padding: 10px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.content button:hover {
+    background-color: #184548;
+}
+
+/* Text Styling */
+.header-text h1, .forgot a {
+    color: #42aeb5;
+}
+
+/* Form Containers */
+.right-box, .col-md-6:first-child {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.6s ease-in-out;
+}
+
+/* Login Form (Initially visible, positioned on the right) */
+.right-box {
+    right: 0;
+}
+
+/* Hide login form when switching to register */
+.content.active .right-box {
+    transform: translateX(100%);
+    display: none;
+}
+
+/* Signup Form (Initially hidden, positioned on the left) */
+.col-md-6:first-child {
+    left: 0;
+    transform: translateX(-100%);
+    display: flex;
+}
+
+/* Show signup form when active */
+.content.active .col-md-6:first-child {
+    transform: translateX(0);
+    display: flex;
+}
+
+/* Switch Content */
+.switch-content {
+    position: absolute;
+    top: 0;
+    right: 50%;
+    width: 50%;
+    height: 100%;
+    transition: all 0.6s ease-in-out;
+    border-radius: 0 60px 60px 0;
+    z-index: 1000;
+}
+
+.content.active .switch-content {
+    transform: translateX(100%);
+    border-radius: 60px 0 0 60px;
+}
+
+/* Switch Panel */
+.switch {
+    background-color: #42aeb5;
+    height: 100%;
+    color: #fff;
+    position: relative;
+    left: -100%;
+    width: 200%;
+    transform: translateX(0);
+    transition: all 0.6s ease-in-out;
+}
+
+.content.active .switch {
+    transform: translateX(50%);
+}
+
+.switch-panel {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 30px;
+    text-align: center;
+    top: 0;
+    transition: all 0.6s ease-in-out;
+}
+
+.switch-left {
+    transform: translateX(-200%);
+}
+
+.content.active .switch-left {
+    transform: translateX(0);
+}
+
+.switch-right {
+    right: 0;
+    transform: translateX(0);
+}
+
+.content.active .switch-right {
+    transform: translateX(200%);
+}
+/* login.css */
+@media (max-width: 768px) {
+    .right-box {
+      display: block !important; /* Ensure login form is visible on small screens */
+    }
+  
+    .switch-content {
+      flex-direction: column !important;
+    }
+  
+    .switch-panel {
+      margin-bottom: 1rem !important;
+    }
+  }
+
+  /* Custom styles */
+.welcome-text {
+    color: #42aeb5;
+  }
+  
+  .login-btn {
+    background-color: #42aeb5;
+    color: #ffffff;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .login-btn:hover {
+    background-color: #369a9f;
+    transform: scale(1.05);
+    color: #ffffff;
+  }
+
+  /* Welcome text color */
+.welcome-text {
+    color: #42aeb5;
+  }
+  
+  /* Custom input border */
+  .custom-input {
+    border: 2px solid #42aeb5;
+    transition: border-color 0.3s ease-in-out;
+  }
+  
+  .custom-input:focus {
+    border-color: #369a9f; /* Darker shade when focused */
+    box-shadow: 0 0 5px rgba(66, 174, 181, 0.5);
+  }
+  
+  /* Button styling */
+  .login-btn {
+    background-color: #42aeb5;
+    color: #ffffff;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .login-btn:hover {
+    background-color: #369a9f;
+    transform: scale(1.05);
+  }
+  
+  
