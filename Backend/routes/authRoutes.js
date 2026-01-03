@@ -1,106 +1,96 @@
 // import express from "express";
-// import { register, login } from "../controllers/authController.js";
-// import swaggerJSDoc from "swagger-jsdoc";
-// import swaggerUi from "swagger-ui-express";
+// import { register, login, getAllUsers, updateUser, deleteUser } from "../controllers/authController.js";
+// import { authenticate } from "../middlewares/authMiddleware.js";
+// import adminOnly from "../middlewares/adminOnly.js";
 
 // const router = express.Router();
 
-// /**
-//  * @swagger
-//  * tags:
-//  *   name: Authentication
-//  *   description: User authentication endpoints
-//  */
-
-// /**
-//     @swagger
-//  * /auth/register:
-//  *   post:
-//  *     summary: Register a new user
-//  *     tags: [Authentication]
-//  *     description: Creates a new user account with name, email, and password.
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               name:
-//  *                 type: string
-//  *                 example: "John Doe"
-//  *               email:
-//  *                 type: string
-//  *                 example: "johndoe@example.com"
-//  *               password:
-//  *                 type: string
-//  *                 example: "securepassword123"
-//  *     responses:
-//  *       201:
-//  *         description: User registered successfully
-//  *       400:
-//  *         description: Email already in use or validation error
-//  */
+// // Public routes
 // router.post("/register", register);
-
-// /**
-//  * @swagger
-//  * /auth/login:
-//  *   post:
-//  *     summary: Log in a user
-//  *     tags: [Authentication]
-//  *     description: Authenticates a user and returns a JWT token.
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               email:
-//  *                 type: string
-//  *                 example: "johndoe@example.com"
-//  *               password:
-//  *                 type: string
-//  *                 example: "securepassword123"
-//  *     responses:
-//  *       200:
-//  *         description: Login successful, returns JWT token
-//  *       400:
-//  *         description: Invalid credentials
-//  */
 // router.post("/login", login);
 
-// /**
-//  * @swagger
-//  * /auth/socket:
-//  *   get:
-//  *     summary: Real-time authentication via WebSockets (Socket.io)
-//  *     tags: [Authentication]
-//  *     description: "Handles real-time authentication for user login and registration via WebSockets."
-//  *     responses:
-//  *       101:
-//  *         description: WebSocket connection established
-//  *       400:
-//  *         description: WebSocket connection error
-//  */
+// // Admin-only user management routes
+// router.get("/users", authenticate, adminOnly, getAllUsers);
+// router.put("/users/:id", authenticate, adminOnly, updateUser);
+// router.delete("/users/:id", authenticate, adminOnly, deleteUser);
 
 // export default router;
 
+
 import express from "express";
-import { register, login, getAllUsers, updateUser, deleteUser } from "../controllers/authController.js";
+import { 
+  registerNewTenant, 
+  register, 
+  login, 
+  getAllUsers, 
+  updateUser, 
+  deleteUser,
+  getMe
+} from "../controllers/authController.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
 import adminOnly from "../middlewares/adminOnly.js";
 
 const router = express.Router();
 
-// Public routes
-router.post("/register", register);
+// ==========================================
+// PUBLIC ROUTES (No authentication needed)
+// ==========================================
+
+/**
+ * @route POST /api/auth/register-tenant
+ * @desc Register new tenant (SME company signup)
+ * @access Public
+ */
+router.post("/register-tenant", registerNewTenant);
+
+/**
+ * @route POST /api/auth/login
+ * @desc User login
+ * @access Public
+ */
 router.post("/login", login);
 
-// Admin-only user management routes
+// ==========================================
+// PROTECTED ROUTES (Authentication required)
+// ==========================================
+
+/**
+ * @route GET /api/auth/me
+ * @desc Get current user profile
+ * @access Private
+ */
+router.get("/me", authenticate, getMe);
+
+// ==========================================
+// ADMIN ONLY ROUTES
+// ==========================================
+
+/**
+ * @route POST /api/auth/register
+ * @desc Register new user within tenant (Admin only)
+ * @access Private/Admin
+ */
+router.post("/register", authenticate, adminOnly, register);
+
+/**
+ * @route GET /api/auth/users
+ * @desc Get all users in tenant
+ * @access Private/Admin
+ */
 router.get("/users", authenticate, adminOnly, getAllUsers);
+
+/**
+ * @route PUT /api/auth/users/:id
+ * @desc Update user
+ * @access Private/Admin
+ */
 router.put("/users/:id", authenticate, adminOnly, updateUser);
+
+/**
+ * @route DELETE /api/auth/users/:id
+ * @desc Delete user
+ * @access Private/Admin
+ */
 router.delete("/users/:id", authenticate, adminOnly, deleteUser);
 
 export default router;
