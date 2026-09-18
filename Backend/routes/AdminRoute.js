@@ -1,48 +1,92 @@
-// import express from "express";
-// import { authMiddleware } from "../middleware/auth.js";
-// import { adminOnly } from "../middleware/adminOnly.js";
-// import * as adminController from "../controllers/adminController.js";
-
-// const router = express.Router();
-
-// router.use(authMiddleware);
-// router.use(adminOnly);
-
-// // Admin overview (all branches)
-// router.get("/overview", adminController.getAdminOverview);
-
-// // Branch details (view all items in a branch)
-// router.get("/branch/:branchId", adminController.getBranchDetails);
-
-// export default router;
-
 import express from "express";
-import { authenticate } from "../middlewares/authMiddleware.js"; // Use your actual path
-import  adminOnly  from "../middlewares/adminOnly.js"; // Use your actual path
-import * as adminController from "../controllers/AdminController.js";
+import {
+  getAdminOverview,
+  getBranchSummary,
+  getBranchDetails,
+  getCategoryDistribution,
+  getUserStats,
+  getAllUsers,
+  getStockTrend,
+  // ✅ ADD THESE NEW IMPORTS
+  getActivityFeed,
+  getUserActivity,
+  getActivityStats,
+  getItemActivity
+} from "../controllers/AdminController.js";
+import { authenticate } from "../middlewares/authMiddleware.js";
+import adminOnly from "../middlewares/adminOnly.js";
 
 const router = express.Router();
 
-// Apply authentication and admin check to all routes
+// ✅ All admin routes require authentication and admin role
 router.use(authenticate);
 router.use(adminOnly);
 
-// Admin overview (all branches)
-router.get("/overview", adminController.getAdminOverview);
 
-// Branch summary/comparison
-router.get("/branch-summary", adminController.getBranchSummary);
+/**
+ * @route GET /api/admin/overview
+ * @desc Get admin overview of all branches
+ */
+router.get("/overview", getAdminOverview);
 
-// Branch details (view all items in a branch)
-router.get("/branch/:branchId", adminController.getBranchDetails);
+/**
+ * @route GET /api/admin/branch-summary
+ * @desc Get branch comparison/summary
+ */
+router.get("/branch-summary", getBranchSummary);
 
-// Category distribution
-router.get("/category-distribution", adminController.getCategoryDistribution);
+/**
+ * @route GET /api/admin/branch/:branchId
+ * @desc Get detailed information for a specific branch
+ */
+router.get("/branch/:branchId", getBranchDetails);
 
-// User statistics
-router.get("/users", adminController.getUserStats);
-router.get("/all-users", authenticate, adminController.getAllUsers);
-// Add this line with your other routes
-router.get("/stock-trend", adminController.getStockTrend);
+/**
+ * @route GET /api/admin/category-distribution
+ * @desc Get category-wise distribution across all branches
+ */
+router.get("/category-distribution", getCategoryDistribution);
+
+/**
+ * @route GET /api/admin/users
+ * @desc Get user statistics
+ */
+router.get("/users", getUserStats);
+
+/**
+ * @route GET /api/admin/all-users
+ * @desc Get all users with details
+ */
+router.get("/all-users", getAllUsers);
+
+/**
+ * @route GET /api/admin/stock-trend
+ * @desc Get stock movement trend
+ */
+router.get("/stock-trend", getStockTrend);
+
+/**
+ * @route GET /api/admin/activity-feed
+ * @desc Get recent activity feed (real-time view of all activities)
+ */
+router.get("/activity-feed", getActivityFeed);
+
+/**
+ * @route GET /api/admin/users/:userId/activity
+ * @desc Get detailed activity for a specific user
+ */
+router.get("/users/:userId/activity", getUserActivity);
+
+/**
+ * @route GET /api/admin/activity-stats
+ * @desc Get overall activity statistics
+ */
+router.get("/activity-stats", getActivityStats);
+
+/**
+ * @route GET /api/admin/items/:itemId/activity
+ * @desc Get complete history for a specific item
+ */
+router.get("/items/:itemId/activity", getItemActivity);
 
 export default router;

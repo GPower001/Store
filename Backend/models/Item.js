@@ -80,6 +80,10 @@ const itemSchema = new mongoose.Schema(
     // Additional fields
     description: { type: String },
     unit: { type: String }, // e.g., "pcs", "kg", "liters"
+    isDeleted: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );

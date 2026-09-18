@@ -480,7 +480,7 @@ export const recordStockMovement = async (req, res) => {
     const branchId = req.user.branchId;
 
     // Get the item
-    const item = await Item.findById(itemId);
+    const item = await Item.findOne({ _id: itemId, tenantId: req.user.tenantId });
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
@@ -515,6 +515,7 @@ export const recordStockMovement = async (req, res) => {
     // Record the movement
     const movement = await StockMovement.create({
       itemId,
+      tenantId: req.user.tenantId,
       branchId,
       userId,
       movementType,
@@ -566,7 +567,7 @@ export const getStockMovements = async (req, res) => {
     console.log("User from token:", req.user);
 
     // Build filter query
-    const filter = {};
+    const filter = { tenantId: req.user.tenantId };
     
     if (branchId) filter.branchId = branchId;
     if (userId) filter.userId = userId;
@@ -638,7 +639,7 @@ export const getStockMovementStats = async (req, res) => {
   try {
     const { startDate, endDate, branchId } = req.query;
 
-    const filter = {};
+    const filter = { tenantId: req.user.tenantId };
     
     if (startDate || endDate) {
       filter.createdAt = {};
@@ -841,7 +842,7 @@ export const getMovementsByUser = async (req, res) => {
   try {
     const { startDate, endDate, branchId } = req.query;
 
-    const filter = {};
+    const filter = { tenantId: req.user.tenantId };
     
     if (startDate || endDate) {
       filter.createdAt = {};

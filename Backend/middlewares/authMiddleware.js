@@ -67,8 +67,10 @@
 
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
+import TokenBlacklist from "../models/TokenBlacklist.js";  // ✅ Add this import
+import Tenant from "../models/Tenant.js";
 
-const authenticate = async (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   let token = req.header("Authorization");
 
   if (!token) {
@@ -83,27 +85,21 @@ const authenticate = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    /*
-      If token already contains everything we need
-      (best case – fast path)
-    */
-    if (decoded?.id && decoded?.role && decoded?.branchId !== undefined) {
-      req.user = {
-        id: decoded.id,
-        role: decoded.role,
-        branchId: decoded.branchId,
-        name: decoded.name,
-      };
-      return next();
+    // ✅ STEP 1: Check if token is blacklisted (logged out)
+    const isBlacklisted = await TokenBlacklist.findOne({ token });
+    if (isBlacklisted) {
+      return res.status(401).json({
+        message: "Token has been revoked. Please login again.",
+      });
     }
 
-    /*
-      Fallback: fetch user from DB
-    */
+    // ✅ STEP 2: Verify JWT signature and expiration
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Revalidate the account and tenant on every request so stale JWT claims
+    // cannot preserve access after an account or organization change.
     const user = await User.findById(decoded.id).select(
-      "_id name role branchId"
+      "_id name email role branchId tenantId isActive"
     );
 
     if (!user) {
@@ -112,20 +108,56 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    // ✅ STEP 5: Check if user account is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        message: "Account is inactive. Please contact your administrator.",
+      });
+    }
+
+    const tenant = await Tenant.findById(user.tenantId).select("status");
+    if (!tenant || !["active", "trial"].includes(tenant.status)) {
+      return res.status(403).json({
+        message: "Organization is not active.",
+      });
+    }
+
+    // ✅ STEP 6: Verify tenant exists (multi-tenant security)
+    if (!user.tenantId) {
+      return res.status(403).json({
+        message: "User is not associated with any organization.",
+      });
+    }
+
+    // ✅ STEP 7: Set user info on request object
     req.user = {
       id: user._id,
       name: user.name,
+      email: user.email,
       role: user.role,
-      branchId: user.branchId || null, // admins may have null
+      tenantId: user.tenantId,  // ✅ Always include tenant
+      branchId: user.branchId || null,
     };
 
     next();
   } catch (err) {
     console.error("Authentication Error:", err.message);
+    
+    // ✅ Handle specific JWT errors
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({
+        message: "Token has expired. Please login again.",
+      });
+    }
+    
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        message: "Invalid token. Please login again.",
+      });
+    }
+
     return res.status(401).json({
-      message: "Invalid or expired token.",
+      message: "Authentication failed.",
     });
   }
 };
-
-export { authenticate };

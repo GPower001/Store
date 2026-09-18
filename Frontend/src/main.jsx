@@ -1,14 +1,7 @@
-import React from 'react'
-import PageTitle from './PageTitle'
-import Dashboard from './Dashboard'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import "./index.css";
 
-function Main() {
-  return (
-    <main id='main' className='main'>
-        <PageTitle page='Dashboard'/>
-        <Dashboard/>
-    </main>
-  )
-}
-
-export default Main
+createRoot(document.getElementById("root")).render(<StrictMode><BrowserRouter><App /></BrowserRouter></StrictMode>);

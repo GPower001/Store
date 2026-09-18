@@ -1,61 +1,45 @@
-// import React from 'react'
-// import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import './App.css'
-// import Header from './components/Header'
-// import 'bootstrap/dist/css/bootstrap.min.css';
-// import "bootstrap/dist/js/bootstrap.bundle.min";
-// import SideBar from './components/SideBar'
-// import Main from './components/Main';
-// import Footer from './components/Footer';
-// import BackToTop from './components/BackToTop';
-// import AddItemPage from './components/AddItemPage';
-// import MedicationPage from './components/MedicationPage';
-// import ConsumablePage from './components/ConsumablePage';
-// import GeneralPage from './components/GeneralPage';
-// import Login from './components/Login';
+// import { Navigate, Route, Routes } from "react-router-dom";
+// import Login from "./pages/auth/Login";
+// import Register from "./pages/auth/Register";
 
 // function App() {
-  
-
-//   return (
-//     <>
-
-//     <Login/>
-//      {/* <BrowserRouter>
-//       <Header />
-//       <SideBar/>
-//       <Routes>
-//         <Route path='/' element={<Main />} />
-//         <Route path="/Add_Item" element={<AddItemPage />} />  
-//         <Route path="/medication" element={<MedicationPage />} />
-//         <Route path="/consumables" element={<ConsumablePage />} />
-//         <Route path="/Generals" element={<GeneralPage />} />
-//       </Routes>
-//       <BackToTop />
-//       <Footer />
-//     </BrowserRouter> */}
-//     </>
-//   )
+// 	return <Routes><Route path="/login" element={<Login />} /><Route path="/register" element={<Register />} /><Route path="/dashboard" element={<WorkspaceReady />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
 // }
 
-// export default App
+// function WorkspaceReady() {
+// 	const user = JSON.parse(localStorage.getItem("inventory_user") || "null");
+// 	return <main className="workspace-ready"><div className="brand-mark"><span>ST</span> Stockroom</div><p className="panel-kicker">Workspace ready</p><h1>Welcome{user?.name ? `, ${user.name}` : ""}.</h1><p>Your inventory workspace is ready for the next step.</p><button className="submit-button" onClick={() => { localStorage.removeItem("inventory_token"); localStorage.removeItem("inventory_user"); window.location.href = "/login"; }}>Sign out</button></main>;
+// }
 
+// export default App;
+import { Navigate, Route, Routes } from "react-router-dom";
 
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import Dashboard from "./pages/Dashboard";
+import DashboardLayout from "./components/layouts/DashboardLayout";
+import POS from "./pages/POS";
 
-
-
-import React from 'react'
-import { RouterProvider } from 'react-router-dom'
-import UserProvider from "./context/UserContext";
-import router from './router'
-import "./App.css"
-
-const App = () => {
+function App() {
   return (
-  <UserProvider>
-    <RouterProvider router={router} />
-  </UserProvider>
-  )
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/pos" element={<POS />} />
+        </Route>
+      </Route>
+
+      {/* Unknown routes */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;

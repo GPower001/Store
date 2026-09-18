@@ -58,7 +58,11 @@ const userSchema = new mongoose.Schema(
     },
     lastLogin: {
       type: Date
+    },
+    lastLogout: {
+      type: Date
     }
+    
   },
   { timestamps: true }
 );

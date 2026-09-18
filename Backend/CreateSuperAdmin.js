@@ -32,7 +32,7 @@ const createSuperAdmin = async () => {
     console.log("================================\n");
 
     // Connect to database
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ Connected to database\n");
 
     // Check if super admin already exists

@@ -1,6 +1,7 @@
 import express from "express";
 import {
   loginSuperAdmin,
+  logoutSuperAdmin,
   getAllTenants,
   getTenantDetails,
   updateTenant,
@@ -9,11 +10,11 @@ import {
   getSystemStatistics,
   getSuperAdminProfile,
   createSuperAdmin,
-} from "../controllers/superAdminController.js";
+} from "../controllers/SuperAdmin.js";
 import { 
   authenticateSuperAdmin,
   checkPermission 
-} from "../middlewares/superAdminMiddleware.js";
+} from "../middlewares/SuperAdmin.js";
 
 const router = express.Router();
 
@@ -41,6 +42,7 @@ router.use(authenticateSuperAdmin);
  * @access Private/SuperAdmin
  */
 router.get("/me", getSuperAdminProfile);
+router.post("/logout", logoutSuperAdmin);
 
 /**
  * @route POST /api/super-admin/create

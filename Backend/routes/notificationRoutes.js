@@ -57,14 +57,17 @@
 
 import express from "express";
 import Notification from "../models/notificationModel.js";
+import { authenticate } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
+router.use(authenticate);
 
 // Get all notifications (only low-stock and expired, unread first)
 router.get("/", async (req, res) => {
   try {
     // Only get low-stock and expired notifications, unread first
     const notifications = await Notification.find({
+      tenantId: req.user.tenantId,
       type: { $in: ["expired", "low-stock"] }
     })
       .sort({ isRead: 1, createdAt: -1 }); // Unread first, then newest
@@ -80,7 +83,7 @@ router.patch("/:id/read", async (req, res) => {
   try {
     const { id } = req.params;
     const notification = await Notification.findByIdAndUpdate(
-      id,
+      { _id: id, tenantId: req.user.tenantId },
       { isRead: true },
       { new: true }
     );

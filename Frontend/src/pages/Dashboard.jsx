@@ -1,1176 +1,370 @@
-// // import { useState, useEffect } from "react";
-// // import { Bar } from "react-chartjs-2";
-// // import { Card, CardContent } from "../components/ui/card";
-// // import { Bell, AlertTriangle, Clock } from "lucide-react";
-// // import { Link } from "react-router-dom";
-// // import api from "../utils/api"; // ✅ secured axios instance
-// // import {
-// //   Chart as ChartJS,
-// //   BarElement,
-// //   CategoryScale,
-// //   LinearScale,
-// //   Tooltip,
-// //   Legend,
-// // } from "chart.js";
-
-// // ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
-// // const Dashboard = () => {
-// //   const [stockData, setStockData] = useState({ products: 0 });
-// //   const [lowStockItems, setLowStockItems] = useState([]);
-// //   const [expiredItems, setExpiredItems] = useState([]);
-// //   const [inventory, setInventory] = useState([]);
-
-// //   const [loading, setLoading] = useState(true);
-// //   const [error, setError] = useState(null);
-
-// //   const [revenueData, setRevenueData] = useState({
-// //     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-// //     datasets: [
-// //       {
-// //         label: "Revenue",
-// //         data: [20, 45, 30, 50, 40, 60, 30, 55],
-// //         backgroundColor: "#009688",
-// //       },
-// //     ],
-// //   });
-
-// //   const fetchDashboardData = async () => {
-// //   try {
-// //     setLoading(true);
-
-// //     // Inventory
-// //     const inventoryRes = await api.get("/api/items");
-// //     const inventoryData = inventoryRes?.data?.data || [];
-// //     setInventory(inventoryData);
-// //     setStockData({ products: inventoryData.length });
-
-// //     // Low stock calculation
-// //     const lowStockData = inventoryData.filter(item => {
-// //       const stock = Number(item.openingQty ?? 0);
-// //       const minStock = Number(item.minStock ?? 0);
-// //       return stock <= minStock;
-// //     });
-// //     setLowStockItems(lowStockData);
-
-// //     // Expired items
-// //     const expiredRes = await api.get("/api/items/expired");
-// //     const expiredData = expiredRes?.data?.data || [];
-// //     const today = new Date();
-// //     const filteredExpired = expiredData.filter(
-// //       item => item.expiryDate && new Date(item.expiryDate) < today
-// //     );
-// //     setExpiredItems(filteredExpired);
-
-// //     setError(null);
-// //   } catch (err) {
-// //     console.error("Dashboard fetch error:", err);
-// //     setError(
-// //       err.response?.data?.message || "Failed to fetch dashboard data."
-// //     );
-// //   } finally {
-// //     setLoading(false);
-// //   }
-// // };
-
-
-// //   useEffect(() => {
-// //     fetchDashboardData();
-// //   }, []);
-
-// //   if (loading)
-// //     return (
-// //       <div className="flex justify-center items-center py-12">
-// //         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-// //       </div>
-// //     );
-
-// //   if (error)
-// //     return (
-// //       <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-// //         <p className="text-sm text-red-700">{error}</p>
-// //       </div>
-// //     );
-
-// //   return (
-// //     <div className="p-6">
-// //       <h1 className="text-xl font-semibold mb-6">
-// //         Hello <span className="font-bold">Mark!</span>{" "}
-// //         <span className="text-teal-500">Analytics For this week</span>
-// //       </h1>
-
-// //       {/* Stock Cards */}
-// //       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
-// //         {/* Products */}
-// //         <Card className="p-4">
-// //           <CardContent className="flex flex-col gap-2 text-center">
-// //             <h2 className="text-lg font-medium">Products</h2>
-// //             <p className="text-2xl font-bold">{stockData.products} items</p>
-// //             <Link to="categories">
-// //               <button className="bg-teal-500 text-white px-4 py-1 rounded-md">
-// //                 View
-// //               </button>
-// //             </Link>
-// //           </CardContent>
-// //         </Card>
-
-// //         {/* Low Stock */}
-// //         {lowStockItems.length > 0 && (
-// //           <Card className="p-4 border border-red-500">
-// //             <CardContent className="flex flex-col gap-2 text-center">
-// //               <div className="flex justify-between items-center">
-// //                 <h2 className="text-lg font-medium">Low Stock</h2>
-// //                 <AlertTriangle className="text-red-500" size={20} />
-// //               </div>
-// //               <p className="text-2xl font-bold">{lowStockItems.length} items</p>
-// //               <Link to="low-stock">
-// //                 <button className="bg-teal-500 text-white px-4 py-1 rounded-md">
-// //                   View
-// //                 </button>
-// //               </Link>
-// //             </CardContent>
-// //           </Card>
-// //         )}
-
-// //         {/* Expired Items */}
-// //         {expiredItems.length > 0 && (
-// //           <Card className="p-4 border border-yellow-500">
-// //             <CardContent className="flex flex-col gap-2 text-center">
-// //               <div className="flex justify-between items-center">
-// //                 <h2 className="text-lg font-medium">Expired Products</h2>
-// //                 <Clock className="text-yellow-500" size={20} />
-// //               </div>
-// //               <p className="text-2xl font-bold">{expiredItems.length} items</p>
-// //               <Link to="expired-products">
-// //                 <button className="bg-yellow-500 text-white px-4 py-1 rounded-md">
-// //                   View
-// //                 </button>
-// //               </Link>
-// //             </CardContent>
-// //           </Card>
-// //         )}
-// //       </div>
-
-// //       {/* Revenue Chart */}
-// //       <Card className="p-4 h-[50vh] min-h-0">
-// //         <CardContent className="h-full flex flex-col min-h-0">
-// //           <h2 className="text-lg font-medium">Revenue</h2>
-// //           <p className="text-2xl font-bold text-teal-600">£150,000</p>
-// //           <div className="flex-grow w-full min-h-0">
-// //             <Bar data={revenueData} options={{ responsive: true, maintainAspectRatio: false }} />
-// //           </div>
-// //         </CardContent>
-// //       </Card>
-// //     </div>
-// //   );
-// // };
-
-// // export default Dashboard;
-
-
-// import { useState, useEffect } from "react";
-// import { Bar, Line, Pie } from "react-chartjs-2";
-// import { Card, CardContent } from "../components/ui/card";
-// import { Bell, AlertTriangle, Clock, Package, DollarSign, TrendingUp } from "lucide-react";
-// import { Link } from "react-router-dom";
-// import api from "../utils/api";
-// import {
-//   Chart as ChartJS,
-//   BarElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend,
-//   LineElement,
-//   PointElement,
-//   ArcElement,
-// } from "chart.js";
-
-// ChartJS.register(
-//   BarElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend,
-//   LineElement,
-//   PointElement,
-//   ArcElement
-// );
-
-// const Dashboard = () => {
-//   const [stockData, setStockData] = useState({ products: 0 });
-//   const [lowStockItems, setLowStockItems] = useState([]);
-//   const [expiredItems, setExpiredItems] = useState([]);
-//   const [inventory, setInventory] = useState([]);
-//   const [activeTab, setActiveTab] = useState('overview');
-
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-
-//   // Sample data for analytics
-//   const salesData = {
-//     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-//     datasets: [
-//       {
-//         label: "Sales",
-//         data: [4000, 3000, 5000, 4500, 6000, 5500],
-//         borderColor: "#009688",
-//         backgroundColor: "rgba(0, 150, 136, 0.1)",
-//         tension: 0.4,
-//       },
-//     ],
-//   };
-
-//   const revenueData = {
-//     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-//     datasets: [
-//       {
-//         label: "Revenue",
-//         data: [20000, 45000, 30000, 50000, 40000, 60000, 30000, 55000],
-//         backgroundColor: "#009688",
-//       },
-//     ],
-//   };
-
-//   const categoryData = {
-//     labels: ["Medications", "Consumables", "General", "Apparatus", "Skin Care"],
-//     datasets: [
-//       {
-//         data: [45, 25, 15, 10, 5],
-//         backgroundColor: [
-//           "#3b82f6",
-//           "#8b5cf6",
-//           "#10b981",
-//           "#f59e0b",
-//           "#ef4444",
-//         ],
-//       },
-//     ],
-//   };
-
-//   const fetchDashboardData = async () => {
-//     try {
-//       setLoading(true);
-
-//       // Inventory
-//       const inventoryRes = await api.get("/api/items");
-//       const inventoryData = inventoryRes?.data?.data || [];
-//       setInventory(inventoryData);
-//       setStockData({ products: inventoryData.length });
-
-//       // Low stock calculation
-//       const lowStockData = inventoryData.filter((item) => {
-//         const stock = Number(item.openingQty ?? 0);
-//         const minStock = Number(item.minStock ?? 0);
-//         return stock <= minStock;
-//       });
-//       setLowStockItems(lowStockData);
-
-//       // Expired items
-//       const expiredRes = await api.get("/api/items/expired");
-//       const expiredData = expiredRes?.data?.data || [];
-//       const today = new Date();
-//       const filteredExpired = expiredData.filter(
-//         (item) => item.expiryDate && new Date(item.expiryDate) < today
-//       );
-//       setExpiredItems(filteredExpired);
-
-//       setError(null);
-//     } catch (err) {
-//       console.error("Dashboard fetch error:", err);
-//       setError(
-//         err.response?.data?.message || "Failed to fetch dashboard data."
-//       );
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchDashboardData();
-//   }, []);
-
-//   if (loading)
-//     return (
-//       <div className="flex justify-center items-center py-12">
-//         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-//       </div>
-//     );
-
-//   if (error)
-//     return (
-//       <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-//         <p className="text-sm text-red-700">{error}</p>
-//       </div>
-//     );
-
-//   return (
-//     <div className="p-4 sm:p-6">
-//       <h1 className="text-xl font-semibold mb-6">
-//         Hello <span className="font-bold">Mark!</span>{" "}
-//         <span className="text-teal-500">Analytics For this week</span>
-//       </h1>
-
-//       {/* Stock Cards */}
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-//         {/* Products */}
-//         <Card className="p-4 bg-white shadow-sm">
-//           <CardContent className="flex items-center justify-between p-0">
-//             <div>
-//               <p className="text-sm text-gray-600 mb-1">Total Products</p>
-//               <p className="text-2xl font-bold">{stockData.products}</p>
-//               <Link to="categories">
-//                 <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-//                   View
-//                 </button>
-//               </Link>
-//             </div>
-//             <div className="bg-blue-500 p-3 rounded-lg">
-//               <Package className="w-6 h-6 text-white" />
-//             </div>
-//           </CardContent>
-//         </Card>
-
-//         {/* Total Revenue */}
-//         <Card className="p-4 bg-white shadow-sm">
-//           <CardContent className="flex items-center justify-between p-0">
-//             <div>
-//               <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-//               <p className="text-2xl font-bold">£150K</p>
-//               <p className="text-sm text-green-600 mt-2">+23% this month</p>
-//             </div>
-//             <div className="bg-green-500 p-3 rounded-lg">
-//               <DollarSign className="w-6 h-6 text-white" />
-//             </div>
-//           </CardContent>
-//         </Card>
-
-//         {/* Low Stock */}
-//         {lowStockItems.length > 0 && (
-//           <Card className="p-4 bg-white shadow-sm border-l-4 border-orange-500">
-//             <CardContent className="flex items-center justify-between p-0">
-//               <div>
-//                 <p className="text-sm text-gray-600 mb-1">Low Stock</p>
-//                 <p className="text-2xl font-bold">{lowStockItems.length}</p>
-//                 <Link to="low-stock">
-//                   <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-//                     View
-//                   </button>
-//                 </Link>
-//               </div>
-//               <div className="bg-orange-500 p-3 rounded-lg">
-//                 <AlertTriangle className="w-6 h-6 text-white" />
-//               </div>
-//             </CardContent>
-//           </Card>
-//         )}
-
-//         {/* Expired Items */}
-//         {expiredItems.length > 0 && (
-//           <Card className="p-4 bg-white shadow-sm border-l-4 border-yellow-500">
-//             <CardContent className="flex items-center justify-between p-0">
-//               <div>
-//                 <p className="text-sm text-gray-600 mb-1">Expired Items</p>
-//                 <p className="text-2xl font-bold">{expiredItems.length}</p>
-//                 <Link to="expired-products">
-//                   <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-//                     View
-//                   </button>
-//                 </Link>
-//               </div>
-//               <div className="bg-yellow-500 p-3 rounded-lg">
-//                 <Clock className="w-6 h-6 text-white" />
-//               </div>
-//             </CardContent>
-//           </Card>
-//         )}
-//       </div>
-
-//       {/* Analytics Tabs */}
-//       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-//         <div className="border-b border-gray-200">
-//           <nav className="flex gap-8 px-6">
-//             {['overview', 'revenue', 'analytics'].map((tab) => (
-//               <button
-//                 key={tab}
-//                 onClick={() => setActiveTab(tab)}
-//                 className={`py-4 px-2 border-b-2 font-medium text-sm capitalize ${
-//                   activeTab === tab
-//                     ? 'border-teal-600 text-teal-600'
-//                     : 'border-transparent text-gray-500 hover:text-gray-700'
-//                 }`}
-//               >
-//                 {tab}
-//               </button>
-//             ))}
-//           </nav>
-//         </div>
-
-//         <div className="p-6">
-//           {activeTab === 'overview' && (
-//             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-//               <div>
-//                 <h3 className="text-lg font-semibold mb-4">Sales Trends</h3>
-//                 <div className="h-[300px]">
-//                   <Line
-//                     data={salesData}
-//                     options={{
-//                       responsive: true,
-//                       maintainAspectRatio: false,
-//                       plugins: {
-//                         legend: {
-//                           display: true,
-//                         },
-//                       },
-//                     }}
-//                   />
-//                 </div>
-//               </div>
-//               <div>
-//                 <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
-//                 <div className="h-[300px] flex items-center justify-center">
-//                   <Pie
-//                     data={categoryData}
-//                     options={{
-//                       responsive: true,
-//                       maintainAspectRatio: false,
-//                       plugins: {
-//                         legend: {
-//                           position: 'bottom',
-//                         },
-//                       },
-//                     }}
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-//           )}
-
-//           {activeTab === 'revenue' && (
-//             <div>
-//               <h3 className="text-lg font-semibold mb-4">Revenue Overview</h3>
-//               <p className="text-3xl font-bold text-teal-600 mb-6">£150,000</p>
-//               <div className="h-[400px]">
-//                 <Bar
-//                   data={revenueData}
-//                   options={{
-//                     responsive: true,
-//                     maintainAspectRatio: false,
-//                     plugins: {
-//                       legend: {
-//                         display: true,
-//                       },
-//                     },
-//                   }}
-//                 />
-//               </div>
-//             </div>
-//           )}
-
-//           {activeTab === 'analytics' && (
-//             <div>
-//               <h3 className="text-lg font-semibold mb-4">Revenue Analysis</h3>
-//               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-//                 <Card className="p-4">
-//                   <CardContent className="p-0">
-//                     <p className="text-sm text-gray-600 mb-1">Total Sales</p>
-//                     <p className="text-2xl font-bold">234</p>
-//                     <p className="text-sm text-green-600 mt-1">+18% from last month</p>
-//                   </CardContent>
-//                 </Card>
-//                 <Card className="p-4">
-//                   <CardContent className="p-0">
-//                     <p className="text-sm text-gray-600 mb-1">Average Order Value</p>
-//                     <p className="text-2xl font-bold">£641</p>
-//                     <p className="text-sm text-green-600 mt-1">+12% from last month</p>
-//                   </CardContent>
-//                 </Card>
-//                 <Card className="p-4">
-//                   <CardContent className="p-0">
-//                     <p className="text-sm text-gray-600 mb-1">Conversion Rate</p>
-//                     <p className="text-2xl font-bold">3.2%</p>
-//                     <p className="text-sm text-red-600 mt-1">-2% from last month</p>
-//                   </CardContent>
-//                 </Card>
-//               </div>
-//               <div className="h-[400px]">
-//                 <Bar
-//                   data={revenueData}
-//                   options={{
-//                     responsive: true,
-//                     maintainAspectRatio: false,
-//                     plugins: {
-//                       legend: {
-//                         display: true,
-//                       },
-//                     },
-//                   }}
-//                 />
-//               </div>
-//             </div>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Dashboard;
-
-// import { useState, useEffect, useContext } from "react";
-// import { Bar, Line, Pie } from "react-chartjs-2";
-// import { Card, CardContent } from "../components/ui/card";
-// import { Bell, AlertTriangle, Clock, Package, DollarSign, TrendingUp } from "lucide-react";
-// import { Link } from "react-router-dom";
-// import api from "../utils/api";
-// import { UserContext } from "../context/UserContext";
-// import {
-//   Chart as ChartJS,
-//   BarElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend,
-//   LineElement,
-//   PointElement,
-//   ArcElement,
-// } from "chart.js";
-
-// ChartJS.register(
-//   BarElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend,
-//   LineElement,
-//   PointElement,
-//   ArcElement
-// );
-
-// const Dashboard = () => {
-//   const [stockData, setStockData] = useState({ products: 0 });
-//   const [lowStockItems, setLowStockItems] = useState([]);
-//   const [expiredItems, setExpiredItems] = useState([]);
-//   const [inventory, setInventory] = useState([]);
-//   const [activeTab, setActiveTab] = useState('overview');
-
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-
-//   const { user } = useContext(UserContext);
-//   const isAdmin = user?.role === "Admin";
-
-//   // Sample data for analytics
-//   const salesData = {
-//     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-//     datasets: [
-//       {
-//         label: "Sales",
-//         data: [4000, 3000, 5000, 4500, 6000, 5500],
-//         borderColor: "#009688",
-//         backgroundColor: "rgba(0, 150, 136, 0.1)",
-//         tension: 0.4,
-//       },
-//     ],
-//   };
-
-//   const revenueData = {
-//     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-//     datasets: [
-//       {
-//         label: "Revenue",
-//         data: [20000, 45000, 30000, 50000, 40000, 60000, 30000, 55000],
-//         backgroundColor: "#009688",
-//       },
-//     ],
-//   };
-
-//   const categoryData = {
-//     labels: ["Medications", "Consumables", "General", "Apparatus", "Skin Care"],
-//     datasets: [
-//       {
-//         data: [45, 25, 15, 10, 5],
-//         backgroundColor: [
-//           "#3b82f6",
-//           "#8b5cf6",
-//           "#10b981",
-//           "#f59e0b",
-//           "#ef4444",
-//         ],
-//       },
-//     ],
-//   };
-
-//   const fetchDashboardData = async () => {
-//     try {
-//       setLoading(true);
-
-//       // Inventory
-//       const inventoryRes = await api.get("/api/items");
-//       const inventoryData = inventoryRes?.data?.data || [];
-//       setInventory(inventoryData);
-//       setStockData({ products: inventoryData.length });
-
-//       // Low stock calculation
-//       const lowStockData = inventoryData.filter((item) => {
-//         const stock = Number(item.openingQty ?? 0);
-//         const minStock = Number(item.minStock ?? 0);
-//         return stock <= minStock;
-//       });
-//       setLowStockItems(lowStockData);
-
-//       // Expired items
-//       const expiredRes = await api.get("/api/items/expired");
-//       const expiredData = expiredRes?.data?.data || [];
-//       const today = new Date();
-//       const filteredExpired = expiredData.filter(
-//         (item) => item.expiryDate && new Date(item.expiryDate) < today
-//       );
-//       setExpiredItems(filteredExpired);
-
-//       setError(null);
-//     } catch (err) {
-//       console.error("Dashboard fetch error:", err);
-//       setError(
-//         err.response?.data?.message || "Failed to fetch dashboard data."
-//       );
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchDashboardData();
-//   }, []);
-
-//   if (loading)
-//     return (
-//       <div className="flex justify-center items-center py-12">
-//         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-//       </div>
-//     );
-
-//   if (error)
-//     return (
-//       <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-//         <p className="text-sm text-red-700">{error}</p>
-//       </div>
-//     );
-
-//   return (
-//     <div className="p-4 sm:p-6">
-//       <h1 className="text-xl font-semibold mb-6">
-//         Hello <span className="font-bold">{user?.name || "Mark"}!</span>{" "}
-//         <span className="text-teal-500">Analytics For this week</span>
-//       </h1>
-
-//       {/* Stock Cards */}
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-//         {/* Products */}
-//         <Card className="p-4 bg-white shadow-sm">
-//           <CardContent className="flex items-center justify-between p-0">
-//             <div>
-//               <p className="text-sm text-gray-600 mb-1">Total Products</p>
-//               <p className="text-2xl font-bold">{stockData.products}</p>
-//               <Link to="categories">
-//                 <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-//                   View
-//                 </button>
-//               </Link>
-//             </div>
-//             <div className="bg-blue-500 p-3 rounded-lg">
-//               <Package className="w-6 h-6 text-white" />
-//             </div>
-//           </CardContent>
-//         </Card>
-
-//         {/* Total Revenue - Admin Only */}
-//         {isAdmin && (
-//           <Card className="p-4 bg-white shadow-sm">
-//             <CardContent className="flex items-center justify-between p-0">
-//               <div>
-//                 <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-//                 <p className="text-2xl font-bold">£150K</p>
-//                 <p className="text-sm text-green-600 mt-2">+23% this month</p>
-//               </div>
-//               <div className="bg-green-500 p-3 rounded-lg">
-//                 <DollarSign className="w-6 h-6 text-white" />
-//               </div>
-//             </CardContent>
-//           </Card>
-//         )}
-
-//         {/* Low Stock */}
-//         {lowStockItems.length > 0 && (
-//           <Card className="p-4 bg-white shadow-sm border-l-4 border-orange-500">
-//             <CardContent className="flex items-center justify-between p-0">
-//               <div>
-//                 <p className="text-sm text-gray-600 mb-1">Low Stock</p>
-//                 <p className="text-2xl font-bold">{lowStockItems.length}</p>
-//                 <Link to="low-stock">
-//                   <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-//                     View
-//                   </button>
-//                 </Link>
-//               </div>
-//               <div className="bg-orange-500 p-3 rounded-lg">
-//                 <AlertTriangle className="w-6 h-6 text-white" />
-//               </div>
-//             </CardContent>
-//           </Card>
-//         )}
-
-//         {/* Expired Items */}
-//         {expiredItems.length > 0 && (
-//           <Card className="p-4 bg-white shadow-sm border-l-4 border-yellow-500">
-//             <CardContent className="flex items-center justify-between p-0">
-//               <div>
-//                 <p className="text-sm text-gray-600 mb-1">Expired Items</p>
-//                 <p className="text-2xl font-bold">{expiredItems.length}</p>
-//                 <Link to="expired-products">
-//                   <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-//                     View
-//                   </button>
-//                 </Link>
-//               </div>
-//               <div className="bg-yellow-500 p-3 rounded-lg">
-//                 <Clock className="w-6 h-6 text-white" />
-//               </div>
-//             </CardContent>
-//           </Card>
-//         )}
-//       </div>
-
-//       {/* Analytics Section - Admin gets tabs, Users get only Category Distribution */}
-//       {isAdmin ? (
-//         // Admin View - Full Analytics with Tabs
-//         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-//           <div className="border-b border-gray-200">
-//             <nav className="flex gap-8 px-6">
-//               {['overview', 'revenue', 'analytics'].map((tab) => (
-//                 <button
-//                   key={tab}
-//                   onClick={() => setActiveTab(tab)}
-//                   className={`py-4 px-2 border-b-2 font-medium text-sm capitalize ${
-//                     activeTab === tab
-//                       ? 'border-teal-600 text-teal-600'
-//                       : 'border-transparent text-gray-500 hover:text-gray-700'
-//                   }`}
-//                 >
-//                   {tab}
-//                 </button>
-//               ))}
-//             </nav>
-//           </div>
-
-//           <div className="p-6">
-//             {activeTab === 'overview' && (
-//               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-//                 <div>
-//                   <h3 className="text-lg font-semibold mb-4">Sales Trends</h3>
-//                   <div className="h-[300px]">
-//                     <Line
-//                       data={salesData}
-//                       options={{
-//                         responsive: true,
-//                         maintainAspectRatio: false,
-//                         plugins: {
-//                           legend: {
-//                             display: true,
-//                           },
-//                         },
-//                       }}
-//                     />
-//                   </div>
-//                 </div>
-//                 <div>
-//                   <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
-//                   <div className="h-[300px] flex items-center justify-center">
-//                     <Pie
-//                       data={categoryData}
-//                       options={{
-//                         responsive: true,
-//                         maintainAspectRatio: false,
-//                         plugins: {
-//                           legend: {
-//                             position: 'bottom',
-//                           },
-//                         },
-//                       }}
-//                     />
-//                   </div>
-//                 </div>
-//               </div>
-//             )}
-
-//             {activeTab === 'revenue' && (
-//               <div>
-//                 <h3 className="text-lg font-semibold mb-4">Revenue Overview</h3>
-//                 <p className="text-3xl font-bold text-teal-600 mb-6">£150,000</p>
-//                 <div className="h-[400px]">
-//                   <Bar
-//                     data={revenueData}
-//                     options={{
-//                       responsive: true,
-//                       maintainAspectRatio: false,
-//                       plugins: {
-//                         legend: {
-//                           display: true,
-//                         },
-//                       },
-//                     }}
-//                   />
-//                 </div>
-//               </div>
-//             )}
-
-//             {activeTab === 'analytics' && (
-//               <div>
-//                 <h3 className="text-lg font-semibold mb-4">Revenue Analysis</h3>
-//                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-//                   <Card className="p-4">
-//                     <CardContent className="p-0">
-//                       <p className="text-sm text-gray-600 mb-1">Total Sales</p>
-//                       <p className="text-2xl font-bold">234</p>
-//                       <p className="text-sm text-green-600 mt-1">+18% from last month</p>
-//                     </CardContent>
-//                   </Card>
-//                   <Card className="p-4">
-//                     <CardContent className="p-0">
-//                       <p className="text-sm text-gray-600 mb-1">Average Order Value</p>
-//                       <p className="text-2xl font-bold">£641</p>
-//                       <p className="text-sm text-green-600 mt-1">+12% from last month</p>
-//                     </CardContent>
-//                   </Card>
-//                   <Card className="p-4">
-//                     <CardContent className="p-0">
-//                       <p className="text-sm text-gray-600 mb-1">Conversion Rate</p>
-//                       <p className="text-2xl font-bold">3.2%</p>
-//                       <p className="text-sm text-red-600 mt-1">-2% from last month</p>
-//                     </CardContent>
-//                   </Card>
-//                 </div>
-//                 <div className="h-[400px]">
-//                   <Bar
-//                     data={revenueData}
-//                     options={{
-//                       responsive: true,
-//                       maintainAspectRatio: false,
-//                       plugins: {
-//                         legend: {
-//                           display: true,
-//                         },
-//                       },
-//                     }}
-//                   />
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       ) : (
-//         // User View - Only Category Distribution
-//         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-//           <div className="p-6">
-//             <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
-//             <div className="h-[400px] flex items-center justify-center">
-//               <Pie
-//                 data={categoryData}
-//                 options={{
-//                   responsive: true,
-//                   maintainAspectRatio: false,
-//                   plugins: {
-//                     legend: {
-//                       position: 'bottom',
-//                     },
-//                   },
-//                 }}
-//               />
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default Dashboard;
-
-
-import { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { Bar, Line, Pie } from "react-chartjs-2";
-import { Card, CardContent } from "../components/ui/card";
-import { Bell, AlertTriangle, Clock, Package, DollarSign, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
-import api from "../utils/api";
-import { UserContext } from "../context/UserContext";
+import { useEffect, useState } from "react";
 import {
-  Chart as ChartJS,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
-  LineElement,
-  PointElement,
-  ArcElement,
-} from "chart.js";
+	Boxes,
+	CircleAlert,
+	Clock,
+	FileText,
+	Info,
+	Plus,
+	Sparkles,
+	ShoppingCart,
+	TrendingUp,
+	Wallet,
+} from "lucide-react";
+import useAuthStore from "../store/authStore";
+import { getDashboardData } from "../services/dashboardService";
 
-ChartJS.register(
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
-  LineElement,
-  PointElement,
-  ArcElement
-);
+const formatCurrency = (value) => `\u20A6${Number(value || 0).toLocaleString("en-US")}`;
 
-const Dashboard = () => {
-  const navigate = useNavigate();
-  const { user } = useContext(UserContext);
-  
-  const [stockData, setStockData] = useState({ products: 0 });
-  const [lowStockItems, setLowStockItems] = useState([]);
-  const [expiredItems, setExpiredItems] = useState([]);
-  const [inventory, setInventory] = useState([]);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const formatGreetingName = (name) => (name ? name.split(" ")[0] : "");
 
-  // ✅ CRITICAL: Redirect admins to admin dashboard
-  useEffect(() => {
-    console.log("=== Dashboard Component Mounted ===");
-    console.log("User:", user);
-    console.log("User role:", user?.role);
-    console.log("Current path:", window.location.pathname);
-    
-    if (user && user.role === "Admin") {
-      console.log("⚠️ Admin detected on regular dashboard");
-      console.log("🔄 Redirecting to /dashboard/admin");
-      navigate("/dashboard/admin", { replace: true });
-    }
-  }, [user, navigate]);
+function getTimeOfDay() {
+	const hour = new Date().getHours();
+	if (hour < 12) return "morning";
+	if (hour < 18) return "afternoon";
+	return "evening";
+}
 
-  const isAdmin = user?.role === "Admin";
+function Dashboard() {
+	const user = useAuthStore((state) => state.user);
+	const [dashboard, setDashboard] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
 
-  // Fallback logic for displayed user name
-  const storedUser = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("user") || "null");
-    } catch {
-      return null;
-    }
-  })();
+	useEffect(() => {
+		let active = true;
+		getDashboardData()
+			.then((data) => {
+				if (!active) return;
+				setDashboard(data);
+				setError(data.requestError);
+			})
+			.catch((requestError) => {
+				if (active) setError(requestError.message);
+			})
+			.finally(() => {
+				if (active) setLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, []);
 
-  const userName =
-    user?.name ||
-    user?.fullName ||
-    storedUser?.name ||
-    storedUser?.fullName ||
-    localStorage.getItem("username") ||
-    "User";
+		const items = dashboard?.items || [];
+	const lowStockItems = dashboard?.lowStockItems || [];
+	const movements = dashboard?.movements || [];
+	const notifications = dashboard?.notifications || [];
 
-  // Sample data for analytics
-  const salesData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    datasets: [
-      {
-        label: "Sales",
-        data: [4000, 3000, 5000, 4500, 6000, 5500],
-        borderColor: "#009688",
-        backgroundColor: "rgba(0, 150, 136, 0.1)",
-        tension: 0.4,
-      },
-    ],
-  };
+	const todaysSales = dashboard?.todaysSales?.amount ?? 0;
+	const todaysTransactions = dashboard?.todaysSales?.transactions ?? 0;
+	const collectedToday = dashboard?.collectedToday ?? 0;
+	const moneyOwed = dashboard?.moneyOwed ?? 0;
+	const productsInStock = dashboard?.productsInStock ?? items.length;
+	const unitsInStock =
+		dashboard?.unitsInStock ??
+		items.reduce((sum, item) => sum + Number(item.openingQty || 0), 0);
+	const outOfStockItems = items.filter((item) => Number(item.openingQty || 0) === 0);
+	const stockAlerts = dashboard?.stockAlerts ?? lowStockItems.length + outOfStockItems.length;
+	const openInvoices = dashboard?.openInvoices ?? 0;
+	const salesByDay = dashboard?.salesByDay || [];
+	const stockLevels = [
+		{
+			label: "Healthy",
+			count: items.filter((item) => Number(item.openingQty || 0) > Number(item.minStock || 0)).length,
+		},
+		{
+			label: "Low stock",
+			count: lowStockItems.length,
+		},
+		{
+			label: "Out of stock",
+			count: outOfStockItems.length,
+		},
+	];
+	const maxStockCount = Math.max(...stockLevels.map((level) => level.count), 1);
+	const recentActivity = (movements.length ? movements : notifications).slice(0, 5).map((entry) => {
+		if (entry?.itemId && typeof entry.itemId === "object") {
+			return {
+				title: entry.itemId.name || "Inventory update",
+				detail: `${entry.movementType || "Updated"} • ${new Date(entry.createdAt || Date.now()).toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+				})}`,
+			};
+		}
+		return {
+			title: entry?.title || entry?.message || "Inventory update",
+			detail: entry?.description || entry?.type || "Recent update",
+		};
+	});
+	const topProducts = [...items]
+		.sort((a, b) => Number(b.price || 0) * Number(b.openingQty || 0) - Number(a.price || 0) * Number(a.openingQty || 0))
+		.slice(0, 4)
+		.map((item, index) => ({
+			name: item.name,
+			qty: Number(item.openingQty || 0),
+			value: Number(item.price || 0) * Number(item.openingQty || 0),
+			rank: index + 1,
+		}));
+	const inventoryCoverage = items.length ? Math.round(((items.filter((item) => Number(item.openingQty || 0) > Number(item.minStock || 0)).length / items.length) * 100)) : 0;
+	const aiInsights = [
+		`${inventoryCoverage}% of products are above their minimum stock target.`,
+		`${lowStockItems.length} items are approaching a reorder point and may need attention soon.`,
+		`${outOfStockItems.length} items are currently unavailable, which could reduce sales this week.`,
+	];
 
-  const revenueData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-    datasets: [
-      {
-        label: "Revenue",
-        data: [20000, 45000, 30000, 50000, 40000, 60000, 30000, 55000],
-        backgroundColor: "#009688",
-      },
-    ],
-  };
+	return (
+		<div className="dashboard-content">
+			<header className="dashboard-heading">
+				<div className="dashboard-heading-copy">
+					<h1>
+						Good {getTimeOfDay()}
+						{user?.name ? `, ${formatGreetingName(user.name)}` : ""}
+					</h1>
+					<p className="dashboard-subtitle">Here's what's happening across your business today.</p>
+				</div>
+				<div className="dashboard-actions">
+					<button className="secondary-action"><Plus size={16} /> Add product</button>
+					<button className="primary-action-dark"><ShoppingCart size={16} /> Open POS</button>
+				</div>
+			</header>
 
-  const categoryData = {
-    labels: ["Medications", "Consumables", "General", "Apparatus", "Skin Care"],
-    datasets: [
-      {
-        data: [45, 25, 15, 10, 5],
-        backgroundColor: ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"],
-      },
-    ],
-  };
+			{error && (
+				<div className="dashboard-alert" role="alert">
+					<CircleAlert size={17} /> Some dashboard data could not be loaded: {error}
+				</div>
+			)}
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
+			{loading ? (
+				<DashboardLoading />
+			) : (
+				<>
+					<section className="metric-grid" aria-label="Business overview">
+						<MetricCard
+							icon={<TrendingUp size={17} />}
+							label="Today's sales"
+							infoText="Total value of sales recorded today"
+							value={formatCurrency(todaysSales)}
+							detail={`${todaysTransactions.toLocaleString()} transaction${todaysTransactions === 1 ? "" : "s"}`}
+						/>
+						<MetricCard
+							icon={<Wallet size={17} />}
+							label="Collected today"
+							infoText="Cash and payments received today"
+							value={formatCurrency(collectedToday)}
+							detail="cash received"
+						/>
+						<MetricCard
+							icon={<Clock size={17} />}
+							label="Money owed"
+							infoText="Total outstanding balance across unpaid invoices"
+							value={formatCurrency(moneyOwed)}
+							detail="unpaid invoices"
+						/>
+						<MetricCard
+							icon={<Boxes size={17} />}
+							label="Products in stock"
+							value={productsInStock}
+							detail={`${unitsInStock.toLocaleString()} units total`}
+						/>
+						<MetricCard
+							icon={<CircleAlert size={17} />}
+							label="Stock alerts"
+							value={stockAlerts}
+							detail={stockAlerts === 0 ? "All healthy" : `${stockAlerts} item${stockAlerts === 1 ? "" : "s"} need attention`}
+						/>
+						<MetricCard
+							icon={<FileText size={17} />}
+							label="Open invoices"
+							value={openInvoices}
+							detail="draft & issued"
+						/>
+					</section>
 
-      // Inventory
-      const inventoryRes = await api.get("/api/items");
-      const inventoryData = inventoryRes?.data?.data || [];
-      setInventory(inventoryData);
-      setStockData({ products: inventoryData.length });
+					<section className="dashboard-panel sales-panel">
+						<div className="sales-panel-header">
+							<h2>Sales · last 7 days</h2>
+							<p>Total revenue per day</p>
+						</div>
+						<SalesChart data={salesByDay} />
+					</section>
 
-      // Low stock calculation
-      const lowStockData = inventoryData.filter((item) => {
-        const stock = Number(item.currentQty ?? item.openingQty ?? 0);
-        const minStock = Number(item.minStock ?? 0);
-        return stock <= minStock;
-      });
-      setLowStockItems(lowStockData);
+					<section className="dashboard-grid" aria-label="Inventory overview cards">
+						<DashboardCard title="Out of stock" icon={<CircleAlert size={16} />} accent="danger" className="inventory-card">
+							{outOfStockItems.length ? (
+								<ul className="dashboard-list">
+									{outOfStockItems.slice(0, 4).map((item) => (
+										<li key={item._id || item.name}>
+											<span>{item.name}</span>
+											<strong>{Number(item.openingQty || 0)}</strong>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p className="empty-state">No items are currently out of stock.</p>
+							)}
+						</DashboardCard>
 
-      // Expired items
-      const expiredRes = await api.get("/api/items/expired");
-      const expiredData = expiredRes?.data?.data || [];
-      const today = new Date();
-      const filteredExpired = expiredData.filter(
-        (item) => item.expiryDate && new Date(item.expiryDate) < today
-      );
-      setExpiredItems(filteredExpired);
+						<DashboardCard title="Low stock" icon={<CircleAlert size={16} />} accent="warning" className="inventory-card">
+							{lowStockItems.length ? (
+								<ul className="dashboard-list">
+									{lowStockItems.slice(0, 4).map((item) => (
+										<li key={item._id || item.name}>
+											<span>{item.name}</span>
+											<strong>{Number(item.openingQty || 0)}</strong>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p className="empty-state">No low-stock alerts right now.</p>
+							)}
+						</DashboardCard>
 
-      setError(null);
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      setError(err.response?.data?.message || "Failed to fetch dashboard data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+						<DashboardCard title="Top products today" icon={<TrendingUp size={16} />} accent="success" className="inventory-card ranking-card">
+							{topProducts.length ? (
+								<ul className="dashboard-list product-list">
+									{topProducts.map((product) => (
+										<li key={product.name}>
+											<div>
+												<span className="rank-badge">#{product.rank}</span>
+												<strong>{product.name}</strong>
+											</div>
+											<small>{product.qty} units</small>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p className="empty-state">Product data is not available yet.</p>
+							)}
+						</DashboardCard>
 
-  useEffect(() => {
-    // Only fetch data if not admin (admin will be redirected)
-    if (!isAdmin) {
-      fetchDashboardData();
-    }
-  }, [isAdmin]);
+						<DashboardCard title="Stock levels" icon={<Boxes size={16} />} accent="neutral" className="inventory-card stock-card">
+							<div className="stock-levels">
+								{stockLevels.map((level) => (
+									<div key={level.label} className="stock-level-row">
+										<div className="stock-level-meta">
+											<span>{level.label}</span>
+											<strong>{level.count}</strong>
+										</div>
+										<div className="stock-level-bar">
+											<span style={{ width: `${(level.count / maxStockCount) * 100}%` }} />
+										</div>
+									</div>
+								))}
+							</div>
+						</DashboardCard>
 
-  // ✅ Show loading while redirecting admin
-  if (user && user.role === "Admin") {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Redirecting to Admin Dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+						<DashboardCard title="Recent activity" icon={<Clock size={16} />} accent="info" className="wide-card activity-card">
+							{recentActivity.length ? (
+								<ul className="activity-list">
+									{recentActivity.map((activity, index) => (
+										<li key={`${activity.title}-${index}`}>
+											<span className="activity-dot" aria-hidden="true" />
+											<div>
+												<strong>{activity.title}</strong>
+												<small>{activity.detail}</small>
+											</div>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p className="empty-state">No recent activity available.</p>
+							)}
+						</DashboardCard>
 
-  // Loading state for data fetch
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-      </div>
-    );
-  }
+						<DashboardCard title="AI Business Insights" accent="insight" className="wide-card insight-card">
+							<div className="insight-summary">
+								<span className="insight-icon"><Sparkles size={17} /></span>
+								<p>Clear signals from your inventory, ready for action.</p>
+								<span className="insight-status">Live signal</span>
+							</div>
+							<ul className="insight-list">
+								{aiInsights.map((insight, index) => (
+									<li key={`${insight}-${index}`}>
+										<span className="insight-index">0{index + 1}</span>
+										<span>{insight}</span>
+									</li>
+								))}
+							</ul>
+						</DashboardCard>
+					</section>
+				</>
+			)}
+		</div>
+	);
+}
 
-  // Error state
-  if (error) {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-        <p className="text-sm text-red-700">{error}</p>
-      </div>
-    );
-  }
 
-  return (
-    <div className="p-4 sm:p-6">
-      <h1 className="text-xl font-semibold mb-6">
-        Hello <span className="font-bold">{userName}!</span>{" "}
-        <span className="text-teal-500">Analytics For this week</span>
-      </h1>
+function DashboardLoading() {
+	return (
+		<div className="dashboard-loading">
+			<span>Loading live inventory data...</span>
+		</div>
+	);
+}
 
-      {/* Stock Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Products */}
-        <Card className="p-4 bg-white shadow-sm">
-          <CardContent className="flex items-center justify-between p-0">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Products</p>
-              <p className="text-2xl font-bold">{stockData.products}</p>
-              <Link to="categories">
-                <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-                  View
-                </button>
-              </Link>
-            </div>
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <Package className="w-6 h-6 text-white" />
-            </div>
-          </CardContent>
-        </Card>
+function DashboardCard({ title, icon, accent, className = "", children }) {
+	return (
+		<article className={`dashboard-card ${accent} ${className}`.trim()}>
+			<div className="dashboard-card-header">
+				<div className="dashboard-card-title">
+					{icon && <span className="dashboard-card-icon">{icon}</span>}
+					<h3>{title}</h3>
+				</div>
+			</div>
+			{children}
+		</article>
+	);
+}
 
-        {/* Low Stock */}
-        {lowStockItems.length > 0 && (
-          <Card className="p-4 bg-white shadow-sm border-l-4 border-orange-500">
-            <CardContent className="flex items-center justify-between p-0">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Low Stock</p>
-                <p className="text-2xl font-bold">{lowStockItems.length}</p>
-                <Link to="low-stock">
-                  <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-                    View
-                  </button>
-                </Link>
-              </div>
-              <div className="bg-orange-500 p-3 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-white" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+function MetricCard({ icon, label, infoText, value, detail }) {
+	return (
+		<article className="metric-card">
+			<div className="metric-card-header">
+				<span className="metric-label">
+					{label}
+					{infoText && <Info size={12} title={infoText} />}
+				</span>
+				<span className="metric-icon">{icon}</span>
+			</div>
+			<strong className="metric-value">{value}</strong>
+			<span className="metric-detail">{detail}</span>
+		</article>
+	);
+}
 
-        {/* Expired Items */}
-        {expiredItems.length > 0 && (
-          <Card className="p-4 bg-white shadow-sm border-l-4 border-yellow-500">
-            <CardContent className="flex items-center justify-between p-0">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Expired Items</p>
-                <p className="text-2xl font-bold">{expiredItems.length}</p>
-                <Link to="expired-products">
-                  <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded-md mt-3 text-sm">
-                    View
-                  </button>
-                </Link>
-              </div>
-              <div className="bg-yellow-500 p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+function SalesChart({ data }) {
+	const days = Array.from({ length: 7 }).map((_, index) => {
+		const date = new Date();
+		date.setDate(date.getDate() - (6 - index));
+		const match = data.find((entry) => new Date(entry.date).toDateString() === date.toDateString());
+		return {
+			label: new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date),
+			total: Number(match?.total || 0),
+		};
+	});
 
-      {/* Analytics Section - Regular Users Only */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
-          <div className="h-[400px] flex items-center justify-center">
-            <Pie
-              data={categoryData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: "bottom",
-                  },
-                },
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+	const maxTotal = Math.max(...days.map((day) => day.total), 1);
+	const hasSales = days.some((day) => day.total > 0);
+
+	return (
+		<div className="sales-chart">
+			<div className="sales-chart-bars">
+				{days.map((day) => (
+					<div className="sales-chart-column" key={day.label}>
+						<div className="sales-chart-track">
+							<div
+								className="sales-chart-bar"
+								style={{ height: hasSales ? `${Math.max((day.total / maxTotal) * 100, 2)}%` : "2%" }}
+								title={formatCurrency(day.total)}
+							/>
+						</div>
+						<span>{day.label}</span>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
 
 export default Dashboard;

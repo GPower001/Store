@@ -1,138 +1,28 @@
-// import dotenv from "dotenv";
-// import path from "path";
-// import { app, server, io } from "./utils/socket.js";
-// import express from "express"
-// import cors from "cors";
-// import cron from "node-cron";
-
-// import connectDB from "./config/db.js";
-// import swaggerDocs from "./swagger.js";
-// import authRoutes from "./routes/authRoutes.js";
-// import itemRoutes from "./routes/itemRoutes.js";
-// import notificationRoutes from "./routes/notificationRoutes.js";
-// // import upload from "./middlewares/uploadMiddleware.js"; // ❌ REMOVE THIS
-// import checkLowStock from "./utils/checkLowStock.js";
-// import branchRoutes from "./routes/branchRoutes.js"; 
-// import adminRoutes from "./routes/AdminRoute.js";
-// import stockMovementRoutes from "./routes/StockMovementRoutes.js";
-
-
-
-
-// dotenv.config();
-
-// // --------------------
-// // Database
-// // --------------------
-// connectDB().catch((err) => {
-//   console.error("Database connection failed:", err);
-//   process.exit(1);
-// });
-
-// // --------------------
-// // CORS setup
-// // --------------------
-// const allowedOrigins = [
-//   "http://localhost:5173",
-//   "http://127.0.0.1:5173",
-//   "http://localhost:4173",
-//   process.env.FRONTEND_URL,
-//   "https://inventory-sycr.onrender.com",
-// ];
-
-// const corsOptions = {
-//   origin: (origin, callback) => {
-//     if (!origin) return callback(null, true); // allow Postman/cURL
-//     if (allowedOrigins.includes(origin)) return callback(null, true);
-//     console.error("❌ Blocked by CORS:", origin);
-//     callback(new Error("Not allowed by CORS"));
-//   },
-//   credentials: true,
-//   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-//   allowedHeaders: ["Content-Type", "Authorization", "x-branch-id"],
-// };
-
-// app.use(cors(corsOptions));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-// // app.use(upload.any()); // ❌ REMOVE THIS LINE - it causes issues
-
-// // --------------------
-// // Routes
-// // --------------------
-// app.use("/api/auth", authRoutes);
-// app.use("/api/items", itemRoutes);
-// app.use("/api/notifications", notificationRoutes);
-// app.use("/api/branches", branchRoutes);
-// app.use("/api/stock-movements", stockMovementRoutes);
-// // Admin Routes
-// app.use("/api/admin", adminRoutes);
-// io.on("connection", (socket) => {
-//   console.log("✅ New client connected:", socket.id);
-
-//   socket.on("join-branch", (branchId) => {
-//     if (branchId) {
-//       socket.join(branchId);
-//       console.log(`🔔 Socket ${socket.id} joined branch ${branchId}`);
-//     }
-//   });
-
-//   socket.on("disconnect", () => console.log("❌ Client disconnected:", socket.id));
-// });
-
-// // --------------------
-// // Cron job for low stock checks (every hour)
-// // --------------------
-// cron.schedule("0 * * * *", async () => {
-//   console.log("Running low stock check...");
-//   try {
-//     await checkLowStock(io)(); // pass io to avoid circular import
-//   } catch (err) {
-//     console.error("Low stock check failed:", err.message);
-//   }
-// });
-
-// // --------------------
-// // Serve frontend in production
-// // --------------------
-// if (process.env.NODE_ENV === "production") {
-//   const __dirname = path.resolve();
-//   app.use(express.static(path.join(__dirname, "../Frontend/dist")));
-//   app.get("*", (req, res) => {
-//     res.sendFile(path.join(__dirname, "../Frontend/dist/index.html"));
-//   });
-// }
-
-// // --------------------
-// // Error handling
-// // --------------------
-// app.use((err, req, res, next) => {
-//   console.error("Unhandled error:", err.stack);
-//   res.status(err.status || 500).json({
-//     error: err.message || "Internal Server Error",
-//     details: process.env.NODE_ENV === "development" ? err.stack : undefined,
-//   });
-// });
-
-// // --------------------
-// // Start server
-// // --------------------
-// console.log("JWT_SECRET loaded:", process.env.JWT_SECRET ? "✅ Yes" : "❌ No");
-
-// const PORT = process.env.PORT || 5000;
-// server.listen(PORT, () => {
-//   console.log(`🚀 Server running at http://localhost:${PORT}`);
-//   swaggerDocs(app);
-// });
-
-
 import dotenv from "dotenv";
 import path from "path";
 import { app, server, io } from "./utils/socket.js";
 import express from "express";
-import cors from "cors";
+import cookieParser from "cookie-parser";
 import cron from "node-cron";
 
+// ✅ SECURITY IMPORTS
+import { 
+  generalLimiterRedis, 
+  apiLimiter 
+} from "./middlewares/rateLimiter.js";
+import { 
+  securityHeaders, 
+  customSecurityHeaders 
+} from "./middlewares/securityHeaders.js";
+import { 
+  sanitizeMongo, 
+  sanitizeXSS, 
+  sanitizeInput 
+} from "./middlewares/sanitizer.js";
+import { checkIPBlocklist } from "./utils/ipBlocklist.js";
+import { corsMiddleware } from "./middlewares/corsConfig.js";
+
+// Database & Routes
 import connectDB from "./config/db.js";
 import swaggerDocs from "./swagger.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -142,63 +32,84 @@ import checkLowStock from "./utils/checkLowStock.js";
 import branchRoutes from "./routes/branchRoutes.js";
 import adminRoutes from "./routes/AdminRoute.js";
 import stockMovementRoutes from "./routes/StockMovementRoutes.js";
-import superAdminRoutes from "./routes/superAdminRoutes.js"; // ✅ NEW - Super Admin Routes
+import superAdminRoutes from "./routes/superAdmin.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+
+// Audit Route
+import auditRoutes from "./routes/auditRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js"
+import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js"
+import posRoutes from "./routes/posRoutes.js"
 
 dotenv.config();
 
 // --------------------
-// Database
+// Database Connection
 // --------------------
 connectDB().catch((err) => {
-  console.error("Database connection failed:", err);
+  console.error("❌ Database connection failed:", err);
   process.exit(1);
 });
 
 // --------------------
-// CORS setup
+// SECURITY MIDDLEWARE (Applied BEFORE routes)
 // --------------------
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:4173",
-  process.env.FRONTEND_URL,
-  "https://inventory-sycr.onrender.com",
-];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow Postman/cURL
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.error("❌ Blocked by CORS:", origin);
-    callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-branch-id"],
-};
+// 1. IP Blocklist Check (First line of defense)
+app.use(checkIPBlocklist);
 
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 2. Security Headers (Helmet)
+app.use(securityHeaders);
+app.use(customSecurityHeaders);
+
+// 3. CORS Configuration
+app.use(corsMiddleware);
+
+// 4. Body Parsing
+app.use(express.json({ limit: '10mb' })); // Limit payload size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser()); // Required for CSRF tokens
+
+// 5. Sanitization (Prevent injection attacks)
+app.use(sanitizeMongo); // Prevent NoSQL injection
+app.use(sanitizeXSS);   // Prevent XSS attacks
+app.use(sanitizeInput); // Custom input sanitization
+
+// 6. Global Rate Limiting
+app.use('/api/', generalLimiterRedis); // Apply to all API routes
 
 // --------------------
-// Static Files (for uploads)
+// Static Files
 // --------------------
 const __dirname = path.resolve();
 const uploadsDir = path.join(__dirname, "uploads");
 app.use("/uploads", express.static(uploadsDir));
 
 // --------------------
-// Routes
+// Routes (WITH SPECIFIC RATE LIMITERS)
 // --------------------
-app.use("/api/auth", authRoutes);                      // ✅ Tenant authentication & user management
-app.use("/api/super-admin", superAdminRoutes);         // ✅ NEW - Super Admin routes
-app.use("/api/items", itemRoutes);                     // ✅ Item management
-app.use("/api/notifications", notificationRoutes);     // ✅ Notifications
-app.use("/api/branches", branchRoutes);                // ✅ Branch management
-app.use("/api/stock-movements", stockMovementRoutes);  // ✅ Stock movements
-app.use("/api/admin", adminRoutes);                    // ✅ Tenant admin dashboard
 
+// Auth routes have stricter rate limiting (applied in authRoutes.js)
+app.use("/api/auth", authRoutes);
+
+// Super Admin routes
+app.use("/api/super-admin", superAdminRoutes);
+
+// Subscription routes
+app.use("/api/subscription", subscriptionRoutes);
+
+// API routes with standard rate limiting
+app.use("/api/items", apiLimiter, itemRoutes);
+app.use("/api/notifications", apiLimiter, notificationRoutes);
+app.use("/api/branches", apiLimiter, branchRoutes);
+app.use("/api/stock-movements", apiLimiter, stockMovementRoutes);
+app.use("/api/admin", apiLimiter, adminRoutes);
+
+// Audit Route
+app.use("/api/audit", auditRoutes);
+app.use("/api/reports", reportRoutes)
+app.use("/api/PurchaseOrder", purchaseOrderRoutes)
+app.use("/api/pos", apiLimiter, posRoutes)
 // --------------------
 // Health Check Endpoint
 // --------------------
@@ -207,9 +118,16 @@ app.get("/", (req, res) => {
     message: "Multi-Tenant Inventory Management System API",
     version: "2.0.0",
     status: "running",
+    security: {
+      rateLimiting: "enabled",
+      headers: "secured",
+      sanitization: "enabled",
+      cors: "configured"
+    },
     endpoints: {
       auth: "/api/auth",
-      superAdmin: "/api/super-admin",          // ✅ NEW
+      superAdmin: "/api/super-admin",
+      subscription: "/api/subscription",
       items: "/api/items",
       branches: "/api/branches",
       admin: "/api/admin",
@@ -219,8 +137,10 @@ app.get("/", (req, res) => {
   });
 });
 
+
+
 // --------------------
-// Socket.IO for real-time notifications
+// Socket.IO
 // --------------------
 io.on("connection", (socket) => {
   console.log("✅ New client connected:", socket.id);
@@ -228,7 +148,7 @@ io.on("connection", (socket) => {
   socket.on("join-branch", (branchId) => {
     if (branchId) {
       socket.join(branchId);
-      console.log(`🔔 Socket ${socket.id} joined branch ${branchId}`);
+      console.log(`🔒 Socket ${socket.id} joined branch ${branchId}`);
     }
   });
 
@@ -236,7 +156,7 @@ io.on("connection", (socket) => {
 });
 
 // --------------------
-// Cron job for low stock checks (every hour)
+// Cron Jobs
 // --------------------
 cron.schedule("0 * * * *", async () => {
   console.log("🔄 Running low stock check...");
@@ -248,7 +168,7 @@ cron.schedule("0 * * * *", async () => {
 });
 
 // --------------------
-// Serve frontend in production
+// Production: Serve Frontend
 // --------------------
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../Frontend/dist")));
@@ -268,10 +188,29 @@ app.use((req, res) => {
 });
 
 // --------------------
-// Global Error Handler
+// Global Error Handler (WITH SECURITY)
 // --------------------
 app.use((err, req, res, next) => {
   console.error("❌ Unhandled error:", err.stack);
+
+  // Don't leak error details in production
+  const isDevelopment = process.env.NODE_ENV === "development";
+
+  // CORS errors
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      success: false,
+      message: "CORS policy violation"
+    });
+  }
+
+  // CSRF errors
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({
+      success: false,
+      message: "Invalid CSRF token"
+    });
+  }
 
   // Mongoose validation error
   if (err.name === "ValidationError") {
@@ -306,31 +245,47 @@ app.use((err, req, res, next) => {
     });
   }
 
+  // Payload too large
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      message: "Request payload too large"
+    });
+  }
+
   // Default error
   res.status(err.status || 500).json({
     success: false,
-    error: err.message || "Internal Server Error",
-    details: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    message: isDevelopment ? err.message : "Internal Server Error",
+    ...(isDevelopment && { stack: err.stack })
   });
 });
 
 // --------------------
-// Start server
+// Start Server
 // --------------------
-console.log("\n🔍 Environment Check:");
-console.log("   JWT_SECRET:", process.env.JWT_SECRET ? "✅ Loaded" : "❌ Missing");
-console.log("   MONGODB_URI:", process.env.MONGODB_URI ? "✅ Loaded" : "❌ Missing");
+console.log("\nEnvironment Check:");
+console.log("   JWT_SECRET:", process.env.JWT_SECRET ? "Loaded" : "Missing");
+console.log("   MONGODB_URI:", process.env.MONGO_URI ? "Loaded" : "Missing");
 console.log("   NODE_ENV:", process.env.NODE_ENV || "development");
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
-  console.log(`📡 API URL: http://localhost:${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log("\n📋 Available endpoints:");
+  console.log(`\nServer running on port ${PORT}`);
+  console.log(`API URL: http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log("\nSecurity Features Enabled:");
+  console.log("Rate Limiting");
+  console.log("Security Headers (Helmet)");
+  console.log("XSS Protection");
+  console.log("NoSQL Injection Protection");
+  console.log("CORS Configuration");
+  console.log("IP Blocklist");
+  console.log("\n Available endpoints:");
   console.log(`   - Health: GET /`);
   console.log(`   - Tenant Auth: /api/auth`);
-  console.log(`   - Super Admin: /api/super-admin`);           // ✅ NEW
+  console.log(`   - Super Admin: /api/super-admin`);
+  console.log(`   - Subscription: /api/subscription`);
   console.log(`   - Items: /api/items`);
   console.log(`   - Branches: /api/branches`);
   console.log(`   - Admin Dashboard: /api/admin`);
@@ -344,17 +299,17 @@ server.listen(PORT, () => {
 // Graceful Shutdown
 // --------------------
 process.on("SIGTERM", () => {
-  console.log("⚠️  SIGTERM signal received: closing server gracefully");
+  console.log(" SIGTERM signal received: closing server gracefully");
   server.close(() => {
-    console.log("✅ HTTP server closed");
+    console.log("HTTP server closed");
     process.exit(0);
   });
 });
 
 process.on("SIGINT", () => {
-  console.log("\n⚠️  SIGINT signal received: closing server gracefully");
+  console.log("\n SIGINT signal received: closing server gracefully");
   server.close(() => {
-    console.log("✅ HTTP server closed");
+    console.log("HTTP server closed");
     process.exit(0);
   });
 });

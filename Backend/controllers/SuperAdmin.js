@@ -5,6 +5,7 @@ import Branch from "../models/branchModel.js";
 import Item from "../models/Item.js";
 import StockMovement from "../models/StockMovement.js";
 import jwt from "jsonwebtoken";
+import TokenBlacklist from "../models/TokenBlacklist.js";
 
 /**
  * @desc Super Admin Login
@@ -89,6 +90,74 @@ export const loginSuperAdmin = async (req, res) => {
   } catch (error) {
     console.error("Super Admin Login Error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * @desc Logout super admin (blacklist token)
+ * @route POST /api/super-admin/logout
+ * @access Private/SuperAdmin
+ */
+export const logoutSuperAdmin = async (req, res) => {
+  try {
+    // Extract token from Authorization header
+    let token = req.header("Authorization");
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false,
+        message: "No token provided" 
+      });
+    }
+
+    // Remove "Bearer " prefix if present
+    if (token.startsWith("Bearer ")) {
+      token = token.slice(7).trim();
+    }
+
+    // Decode token to get expiration time
+    const decoded = jwt.decode(token);
+    
+    if (!decoded || !decoded.exp) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid token" 
+      });
+    }
+
+    // Check if token is already blacklisted
+    const existingBlacklist = await TokenBlacklist.findOne({ token });
+    if (existingBlacklist) {
+      return res.status(200).json({
+        success: true,
+        message: "Already logged out"
+      });
+    }
+
+    // Add token to blacklist
+    await TokenBlacklist.create({
+      token,
+      userId: req.superAdmin.id,
+      reason: "logout",
+      expiresAt: new Date(decoded.exp * 1000)
+    });
+
+    // Optional: Update super admin's last logout time
+    await SuperAdmin.findByIdAndUpdate(req.superAdmin.id, {
+      lastLogout: new Date()
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Super admin logged out successfully"
+    });
+  } catch (error) {
+    console.error("Super Admin Logout Error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
 
