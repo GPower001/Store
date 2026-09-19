@@ -61,6 +61,14 @@ const userSchema = new mongoose.Schema(
     },
     lastLogout: {
       type: Date
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false
+    },
+    twoFactorSecret: {
+      type: String,
+      select: false
     }
     
   },

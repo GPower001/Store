@@ -125,6 +125,7 @@ const stockMovementSchema = new mongoose.Schema(
 
 // Indexes for better query performance
 stockMovementSchema.index({ tenantId: 1, createdAt: -1 });
+stockMovementSchema.index({ tenantId: 1, branchId: 1, createdAt: -1 });
 stockMovementSchema.index({ branchId: 1, createdAt: -1 });
 stockMovementSchema.index({ userId: 1, createdAt: -1 });
 stockMovementSchema.index({ itemId: 1, createdAt: -1 });

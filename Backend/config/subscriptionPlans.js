@@ -64,7 +64,7 @@ export const SUBSCRIPTION_PLANS = {
   },
   basic: {
     name: "Basic Plan",
-    price: 29.99,
+    price: 10000,
     billingCycle: "monthly",
     maxBranches: 5,
     maxAdmins: 1,
@@ -82,7 +82,7 @@ export const SUBSCRIPTION_PLANS = {
   },
   premium: {
     name: "Premium Plan",
-    price: 99.99,
+    price: 25000,
     billingCycle: "monthly",
     maxBranches: 20,
     maxAdmins: 3,

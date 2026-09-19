@@ -34,7 +34,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // **Core Middleware**
-app.use(express.json());
+app.use(express.json({ verify: (req, res, buffer) => { req.rawBody = buffer; } }));
 app.use(express.urlencoded({ extended: true }));
 
 // **Static Files**

@@ -61,6 +61,10 @@ const itemSchema = new mongoose.Schema(
       type: Number,
       min: 0
     },
+    costPrice: {
+      type: Number,
+      min: 0
+    },
     image: { 
       type: String 
     },
@@ -80,6 +84,10 @@ const itemSchema = new mongoose.Schema(
     // Additional fields
     description: { type: String },
     unit: { type: String }, // e.g., "pcs", "kg", "liters"
+    weightPerUnit: {
+      type: Number,
+      min: 0
+    },
     isDeleted: {
       type: Boolean,
       default: false
@@ -93,6 +101,7 @@ itemSchema.index({ name: 1, category: 1, branchId: 1, tenantId: 1 }, { unique: t
 itemSchema.index({ itemCode: 1, branchId: 1, tenantId: 1 }, { unique: true });
 itemSchema.index({ tenantId: 1 });
 itemSchema.index({ branchId: 1 });
+itemSchema.index({ tenantId: 1, branchId: 1, createdAt: -1 });
 itemSchema.index({ category: 1, tenantId: 1 });
 
 const Item = mongoose.models.Item || mongoose.model("Item", itemSchema);

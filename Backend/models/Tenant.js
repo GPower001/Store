@@ -179,6 +179,16 @@ const tenantSchema = new mongoose.Schema(
     billingEmail: { type: String },
     phone: { type: String },
     address: { type: String },
+    currency: { type: String, default: "NGN", trim: true },
+    region: { type: String, default: "NG", trim: true },
+    notificationPreferences: {
+      lowStockAlerts: { type: Boolean, default: true },
+      overdueInvoiceAlerts: { type: Boolean, default: true },
+      expiryAlerts: { type: Boolean, default: true },
+      gettingStartedEmails: { type: Boolean, default: true },
+      marketingEmails: { type: Boolean, default: false },
+      dailySummary: { type: Boolean, default: true },
+    },
     
     // ✅ UPDATED: Trial period tracking
     trialStartDate: { type: Date, default: Date.now },
@@ -217,12 +227,9 @@ tenantSchema.methods.getTotalAllowedUsers = function() {
 
 // NEW: Calculate monthly cost including additional staff
 tenantSchema.methods.calculateMonthlyCost = function() {
-  const { SUBSCRIPTION_PLANS, ADDITIONAL_STAFF_PRICING } = require("../config/subscriptionPlans.js");
-  
-  const baseCost = SUBSCRIPTION_PLANS[this.subscriptionTier].price;
-  const staffCost = this.additionalStaff * (ADDITIONAL_STAFF_PRICING[this.subscriptionTier] || 0);
-  
-  return baseCost + staffCost;
+  const basePrices = { free: 0, basic: 10000, premium: 25000 };
+  const staffPrices = { free: 0, basic: 5, premium: 4 };
+  return (basePrices[this.subscriptionTier] || 0) + (this.additionalStaff * (staffPrices[this.subscriptionTier] || 0));
 };
 
 tenantSchema.index({ status: 1 });

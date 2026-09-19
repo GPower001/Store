@@ -26,7 +26,10 @@ export const primaryNavigation = [
 export const navigationGroups = [
 	{
 		label: "Sales",
-		items: [{ label: "Invoices", icon: FileText, to: "/invoices" }],
+		items: [
+			{ label: "Sales history", icon: FileText, to: "/sales" },
+			{ label: "Invoices", icon: FileText, to: "/invoices" },
+		],
 	},
 	{
 		label: "More",

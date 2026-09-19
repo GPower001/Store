@@ -7,11 +7,14 @@ import {
   getAllUsers, 
   updateUser, 
   deleteUser,
-  getMe
+  getMe,
+  updateProfile,
+  updateOrganization
 } from "../controllers/authController.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
 import adminOnly from "../middlewares/adminOnly.js";
 import { checkResourceLimit } from "../middlewares/checkSubscriptionLimits.js";
+import { disableTwoFactor, enableTwoFactor, getTwoFactorStatus, setupTwoFactor, verifyTwoFactorLogin } from "../controllers/twoFactorController.js";
 
 // SECURITY IMPORTS
 import { 
@@ -41,6 +44,11 @@ router.post(
   validateTenantRegistration,    //Input validation
   registerTenant
 );
+router.post("/2fa/verify-login", verifyTwoFactorLogin);
+router.get("/2fa/status", authenticate, getTwoFactorStatus);
+router.post("/2fa/setup", authenticate, setupTwoFactor);
+router.post("/2fa/enable", authenticate, enableTwoFactor);
+router.post("/2fa/disable", authenticate, disableTwoFactor);
 
 /**
  * @route POST /api/auth/login
@@ -59,6 +67,8 @@ router.post(
 // ==========================================
 
 router.get("/me", authenticate, getMe);
+router.put("/me", authenticate, updateProfile);
+router.put("/organization", authenticate, adminOnly, updateOrganization);
 router.post("/logout", authenticate, logout);
 
 // ==========================================

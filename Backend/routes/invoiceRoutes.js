@@ -1,15 +1,14 @@
 import express from "express";
 import { authenticate } from "../middlewares/authMiddleware.js";
 import { checkSubscriptionStatus } from "../middlewares/checkSubscriptionLimits.js";
-import { createSale, getRecentSales, getSale, getSales, scanProduct } from "../controllers/posController.js";
+import { exportInvoices, generateInvoice, getInvoice, getInvoices } from "../controllers/invoiceController.js";
 
 const router = express.Router();
 
 router.use(authenticate, checkSubscriptionStatus);
-router.get("/scan/:code", scanProduct);
-router.get("/sales", getSales);
-router.get("/sales/:id", getSale);
-router.get("/recent", getRecentSales);
-router.post("/sales", createSale);
+router.get("/export", exportInvoices);
+router.get("/", getInvoices);
+router.post("/:id/generate", generateInvoice);
+router.get("/:id", getInvoice);
 
 export default router;

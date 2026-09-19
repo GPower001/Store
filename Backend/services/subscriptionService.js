@@ -309,7 +309,7 @@ export const addAdditionalStaffSlots = async (tenantId, numberOfSlots, paymentMe
     totalAdditionalStaff: tenant.additionalStaff,
     monthlyStaffCost: tenant.monthlyStaffCost,
     newTotalAllowed: tenant.maxStaff + tenant.additionalStaff,
-    message: `Successfully added ${numberOfSlots} staff slot(s). Your new monthly cost is $${tenant.calculateMonthlyCost()}.`
+    message: `Successfully added ${numberOfSlots} staff slot(s). Your new monthly cost is ${SUBSCRIPTION_PLANS[tenant.subscriptionTier].price + tenant.monthlyStaffCost}.`
   };
 };
 

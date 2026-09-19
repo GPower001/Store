@@ -237,7 +237,7 @@ export const registerUser = async (userData) => {
     throw new Error("Organization not found");
   }
 
-  if (tenant.status !== "active") {
+  if (!["active", "trial"].includes(tenant.status)) {
     throw new Error("Organization is not active");
   }
 
@@ -253,8 +253,8 @@ export const registerUser = async (userData) => {
 
   // Check user limit
   const userCount = await User.countDocuments({ tenantId });
-  if (userCount >= tenant.maxUsers) {
-    throw new Error(`User limit reached (${tenant.maxUsers}). Please upgrade your subscription.`);
+  if (userCount >= tenant.getTotalAllowedUsers()) {
+    throw new Error(`User limit reached (${tenant.getTotalAllowedUsers()}). Please upgrade your subscription.`);
   }
 
   // Handle branch assignment
@@ -350,7 +350,7 @@ export const loginUser = async (credentials) => {
     throw new Error("User is not associated with any organization.");
   }
 
-  if (user.tenantId.status !== "active") {
+  if (!["active", "trial"].includes(user.tenantId.status)) {
     throw new Error("Your organization account is not active. Please contact support.");
   }
 
@@ -358,6 +358,15 @@ export const loginUser = async (credentials) => {
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
     throw new Error("Invalid email or password");
+  }
+
+  if (user.twoFactorEnabled) {
+    return {
+      success: true,
+      twoFactorRequired: true,
+      challengeToken: jwt.sign({ id: user._id, purpose: "2fa-login" }, process.env.JWT_SECRET, { expiresIn: "5m" }),
+      message: "Enter your authenticator code to continue",
+    };
   }
 
   // Update last login

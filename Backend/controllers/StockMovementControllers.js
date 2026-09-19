@@ -609,17 +609,12 @@ export const getStockMovements = async (req, res) => {
       console.log("First movement item:", movements[0].itemId);
     }
 
-    const total = await StockMovement.countDocuments(filter);
+    const total = req.query.includePagination === "false" ? null : await StockMovement.countDocuments(filter);
 
     res.status(200).json({
       success: true,
       data: movements,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / limit),
-      },
+      ...(total === null ? {} : { pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / limit) } }),
     });
   } catch (error) {
     console.error("Get Stock Movements Error:", error);

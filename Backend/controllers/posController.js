@@ -152,3 +152,61 @@ export const getRecentSales = async (req, res) => {
     res.status(500).json({ success: false, message: "Unable to load recent sales" });
   }
 };
+
+export const getSales = async (req, res) => {
+  try {
+    const { status, paymentMethod, startDate, endDate, page = 1, limit = 25 } = req.query;
+    const filter = {
+      tenantId: req.user.tenantId,
+      branchId: req.user.branchId,
+    };
+
+    if (status && ["completed", "voided"].includes(status)) filter.status = status;
+    if (paymentMethod && ["cash", "card", "transfer"].includes(paymentMethod)) filter.paymentMethod = paymentMethod;
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+    }
+
+    const pageNumber = Math.max(1, Number(page) || 1);
+    const pageLimit = Math.min(100, Math.max(1, Number(limit) || 25));
+    const [sales, total] = await Promise.all([
+      Sale.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((pageNumber - 1) * pageLimit)
+        .limit(pageLimit)
+        .populate("cashierId", "name")
+        .lean(),
+      Sale.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      data: sales,
+      pagination: { page: pageNumber, limit: pageLimit, total, pages: Math.ceil(total / pageLimit) },
+    });
+  } catch (error) {
+    console.error("Get sales history error:", error);
+    res.status(500).json({ success: false, message: "Unable to load sales history" });
+  }
+};
+
+export const getSale = async (req, res) => {
+  try {
+    const sale = await Sale.findOne({
+      _id: req.params.id,
+      tenantId: req.user.tenantId,
+      branchId: req.user.branchId,
+    }).populate("cashierId", "name").populate("branchId", "name").lean();
+
+    if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
+    res.json({ success: true, data: sale });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Unable to load sale receipt" });
+  }
+};

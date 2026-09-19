@@ -54,13 +54,21 @@
 import Notification from "../models/notificationModel.js";
 import Item from "../models/Item.js";
 
+const lastTenantChecks = new Map();
+const CHECK_COOLDOWN_MS = 5000;
+
 /**
  * Check for low stock items and create/update notifications
  * @param {Object} io - Socket.io instance
  * @param {String} itemId - Optional: Check specific item only
  */
-const checkLowStock = (io) => async (itemId = null) => {  // ✅ Curry function to match server.js usage
+const checkLowStock = (io) => async (itemId = null, tenantId = null) => {  // ✅ Curry function to match server.js usage
   try {
+    if (!itemId && tenantId) {
+      const lastCheck = lastTenantChecks.get(String(tenantId)) || 0;
+      if (Date.now() - lastCheck < CHECK_COOLDOWN_MS) return;
+      lastTenantChecks.set(String(tenantId), Date.now());
+    }
     console.log("🔍 Checking for low stock items...");
     
     let lowStockItems;
@@ -72,6 +80,8 @@ const checkLowStock = (io) => async (itemId = null) => {  // ✅ Curry function 
     } else {
       // Check all items with low stock
       lowStockItems = await Item.find({
+        ...(tenantId ? { tenantId } : {}),
+        isDeleted: false,
         $expr: { $lte: ["$openingQty", "$minStock"] },
       });
     }

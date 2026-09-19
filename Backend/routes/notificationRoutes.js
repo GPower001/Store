@@ -58,6 +58,8 @@
 import express from "express";
 import Notification from "../models/notificationModel.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
+import checkLowStock from "../utils/checkLowStock.js";
+import { io } from "../utils/socket.js";
 
 const router = express.Router();
 router.use(authenticate);
@@ -65,12 +67,15 @@ router.use(authenticate);
 // Get all notifications (only low-stock and expired, unread first)
 router.get("/", async (req, res) => {
   try {
+    await checkLowStock(io)(null, req.user.tenantId);
     // Only get low-stock and expired notifications, unread first
     const notifications = await Notification.find({
       tenantId: req.user.tenantId,
-      type: { $in: ["expired", "low-stock"] }
+      type: { $in: ["expired", "expiring-soon", "low-stock", "out-of-stock"] }
     })
-      .sort({ isRead: 1, createdAt: -1 }); // Unread first, then newest
+      .sort({ isRead: 1, createdAt: -1 })
+      .limit(100)
+      .lean(); // Unread first, then newest
 
     res.status(200).json({ success: true, data: notifications });
   } catch (error) {

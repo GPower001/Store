@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronRight, CreditCard, FileText, Minus, Plus, ScanLine, Search, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
 import { completeSale, getPOSItems, scanPOSProduct } from "../services/posService";
 import { getPurchaseOrders } from "../services/purchaseOrderService";
 
@@ -55,7 +56,6 @@ function POS() {
 
   useEffect(() => {
     if (view !== "orders" || ordersLoaded) return;
-    setOrdersLoading(true);
     getPurchaseOrders()
       .then(setOrders)
       .catch((requestError) => setError(requestError.response?.data?.message || "Unable to load orders"))
@@ -189,7 +189,7 @@ function POS() {
 
 function OrdersView({ orders, filter, setFilter, loading }) {
   return <section className="orders-view">
-    <div className="orders-toolbar"><div className="orders-filters">{orderFilters.map((value) => <button type="button" className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{value}<span>{value === "All" ? "" : ""}</span></button>)}</div><span className="orders-count">{orders.length} order{orders.length === 1 ? "" : "s"}</span></div>
+    <div className="orders-toolbar"><div className="orders-filters">{orderFilters.map((value) => <button type="button" className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{value}</button>)}</div><div className="orders-toolbar-actions"><span className="orders-count">{orders.length} order{orders.length === 1 ? "" : "s"}</span><Link className="add-order-button" to="/pos/orders/new"><Plus size={15} /> Add order</Link></div></div>
     {loading ? <div className="orders-empty">Loading purchase orders...</div> : orders.length ? <div className="orders-list">{orders.map((order) => <article className="order-card" key={order._id}><div className="order-card-main"><div className="order-card-heading"><span className="order-icon"><FileText size={18} /></span><div><strong>{order.poNumber || "Purchase order"}</strong><small>{new Date(order.createdAt || order.orderDate).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}</small></div></div><span className={`order-status status-${orderDisplayStatus(order.status).toLowerCase()}`}>{orderDisplayStatus(order.status)}</span></div><div className="order-card-details"><span><small>Supplier</small><strong>{order.supplierName || "No supplier"}</strong></span><span><small>Items</small><strong>{order.items?.length || 0} line item{order.items?.length === 1 ? "" : "s"}</strong></span><span><small>Total</small><strong>{formatCurrency(order.totalAmount)}</strong></span><ChevronRight size={17} /></div></article>)}</div> : <div className="orders-empty"><FileText size={27} /><strong>No {filter.toLowerCase()} orders</strong><span>Orders matching this status will appear here.</span></div>}
   </section>;
 }

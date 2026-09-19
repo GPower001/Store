@@ -8,7 +8,8 @@ import cron from "node-cron";
 // ✅ SECURITY IMPORTS
 import { 
   generalLimiterRedis, 
-  apiLimiter 
+  apiLimiter,
+  notificationLimiter
 } from "./middlewares/rateLimiter.js";
 import { 
   securityHeaders, 
@@ -40,6 +41,7 @@ import auditRoutes from "./routes/auditRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js"
 import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js"
 import posRoutes from "./routes/posRoutes.js"
+import invoiceRoutes from "./routes/invoiceRoutes.js";
 
 dotenv.config();
 
@@ -66,7 +68,7 @@ app.use(customSecurityHeaders);
 app.use(corsMiddleware);
 
 // 4. Body Parsing
-app.use(express.json({ limit: '10mb' })); // Limit payload size
+app.use(express.json({ limit: '10mb', verify: (req, res, buffer) => { req.rawBody = buffer; } })); // Limit payload size
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser()); // Required for CSRF tokens
 
@@ -100,7 +102,7 @@ app.use("/api/subscription", subscriptionRoutes);
 
 // API routes with standard rate limiting
 app.use("/api/items", apiLimiter, itemRoutes);
-app.use("/api/notifications", apiLimiter, notificationRoutes);
+app.use("/api/notifications", notificationLimiter, notificationRoutes);
 app.use("/api/branches", apiLimiter, branchRoutes);
 app.use("/api/stock-movements", apiLimiter, stockMovementRoutes);
 app.use("/api/admin", apiLimiter, adminRoutes);
@@ -110,6 +112,7 @@ app.use("/api/audit", auditRoutes);
 app.use("/api/reports", reportRoutes)
 app.use("/api/PurchaseOrder", purchaseOrderRoutes)
 app.use("/api/pos", apiLimiter, posRoutes)
+app.use("/api/invoices", apiLimiter, invoiceRoutes)
 // --------------------
 // Health Check Endpoint
 // --------------------

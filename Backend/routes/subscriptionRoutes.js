@@ -6,7 +6,11 @@ import {
   upgradeSubscription,
   cancelSubscription,
   checkLimits,
-  handlePaymentWebhook
+  handlePaymentWebhook,
+  initializeSubscriptionPayment,
+  verifySubscriptionPayment,
+  addStaffSlots,
+  removeStaffSlots
 } from "../controllers/subscriptionController.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
 import adminOnly from "../middlewares/adminOnly.js";
@@ -36,6 +40,10 @@ router.get("/status", authenticate, getSubscriptionStatus);
 // Check if limits are reached
 // Example: GET /api/subscription/check-limits
 router.get("/check-limits", authenticate, checkLimits);
+router.post("/add-staff-slots", authenticate, adminOnly, addStaffSlots);
+router.post("/remove-staff-slots", authenticate, adminOnly, removeStaffSlots);
+router.post("/initialize", authenticate, adminOnly, initializeSubscriptionPayment);
+router.get("/verify/:reference", authenticate, adminOnly, verifySubscriptionPayment);
 
 /**
  * ADMIN ONLY ROUTES

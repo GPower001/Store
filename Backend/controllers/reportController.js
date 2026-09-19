@@ -36,10 +36,10 @@ export const getInventoryValuation = async (req, res) => {
     let totalQuantity = 0;
 
     items.forEach(item => {
-      const itemValue = item.openingQty * item.price;
+      const itemValue = Number(item.openingQty || 0) * Number(item.price || 0);
       totalValue += itemValue;
       totalItems += 1;
-      totalQuantity += item.openingQty;
+      totalQuantity += Number(item.openingQty || 0);
 
       // By category
       if (!valuationByCategory[item.category]) {
@@ -51,7 +51,7 @@ export const getInventoryValuation = async (req, res) => {
         };
       }
       valuationByCategory[item.category].totalValue += itemValue;
-      valuationByCategory[item.category].totalQuantity += item.openingQty;
+      valuationByCategory[item.category].totalQuantity += Number(item.openingQty || 0);
       valuationByCategory[item.category].itemCount += 1;
 
       // By branch
@@ -85,8 +85,8 @@ export const getInventoryValuation = async (req, res) => {
           name: item.name,
           category: item.category,
           quantity: item.openingQty,
-          price: item.price,
-          value: (item.openingQty * item.price).toFixed(2),
+          price: Number(item.price || 0),
+          value: (Number(item.openingQty || 0) * Number(item.price || 0)).toFixed(2),
           branch: item.branchId?.name || 'Unknown'
         }))
       }
@@ -130,17 +130,17 @@ export const getStockTrends = async (req, res) => {
         _id: item._id,
         name: item.name,
         category: item.category,
-        currentStock: item.openingQty,
+        currentStock: Number(item.openingQty || 0),
         minStock: item.minStock || 10,
-        price: item.price,
+        price: Number(item.price || 0),
         branch: item.branchId?.name || 'Unknown'
       };
 
-      if (item.openingQty === 0) {
+      if (Number(item.openingQty || 0) === 0) {
         outOfStockItems.push(stockLevel);
-      } else if (item.openingQty <= (item.minStock || 10)) {
+      } else if (Number(item.openingQty || 0) <= (item.minStock || 10)) {
         lowStockItems.push(stockLevel);
-      } else if (item.openingQty > (item.minStock || 10) * 5) {
+      } else if (Number(item.openingQty || 0) > (item.minStock || 10) * 5) {
         overstockItems.push(stockLevel);
       } else {
         healthyStockItems.push(stockLevel);
@@ -161,9 +161,9 @@ export const getStockTrends = async (req, res) => {
         };
       }
       categoryTrends[item.category].totalItems += 1;
-      categoryTrends[item.category].totalQuantity += item.openingQty;
-      if (item.openingQty === 0) categoryTrends[item.category].outOfStock += 1;
-      if (item.openingQty <= (item.minStock || 10)) categoryTrends[item.category].lowStock += 1;
+      categoryTrends[item.category].totalQuantity += Number(item.openingQty || 0);
+      if (Number(item.openingQty || 0) === 0) categoryTrends[item.category].outOfStock += 1;
+      if (Number(item.openingQty || 0) <= (item.minStock || 10)) categoryTrends[item.category].lowStock += 1;
     });
 
     Object.values(categoryTrends).forEach(trend => {
@@ -223,8 +223,8 @@ export const getTopItems = async (req, res) => {
       name: item.name,
       category: item.category,
       quantity: item.openingQty,
-      price: item.price,
-      totalValue: item.openingQty * item.price,
+      price: Number(item.price || 0),
+      totalValue: Number(item.openingQty || 0) * Number(item.price || 0),
       branch: item.branchId?.name || 'Unknown',
       minStock: item.minStock || 10
     }));
@@ -264,11 +264,16 @@ export const getTopItems = async (req, res) => {
  */
 export const getCategoryAnalysis = async (req, res) => {
   try {
-    const { branchId } = req.query;
+    const { branchId, startDate, endDate } = req.query;
     const tenantId = req.user.tenantId;
 
     const filter = { tenantId, isDeleted: false };
     if (branchId) filter.branchId = branchId;
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
 
     const items = await Item.find(filter).lean();
 
@@ -291,10 +296,10 @@ export const getCategoryAnalysis = async (req, res) => {
 
       const cat = categoryData[item.category];
       cat.itemCount += 1;
-      cat.totalQuantity += item.openingQty;
-      cat.totalValue += item.openingQty * item.price;
-      cat.minPrice = Math.min(cat.minPrice, item.price);
-      cat.maxPrice = Math.max(cat.maxPrice, item.price);
+      cat.totalQuantity += Number(item.openingQty || 0);
+      cat.totalValue += Number(item.openingQty || 0) * Number(item.price || 0);
+      cat.minPrice = Math.min(cat.minPrice, Number(item.price || 0));
+      cat.maxPrice = Math.max(cat.maxPrice, Number(item.price || 0));
       cat.items.push({
         name: item.name,
         quantity: item.openingQty,
@@ -365,10 +370,10 @@ export const getBranchComparison = async (req, res) => {
           isDeleted: false
         }).lean();
 
-        const totalValue = items.reduce((sum, item) => sum + (item.openingQty * item.price), 0);
+        const totalValue = items.reduce((sum, item) => sum + (Number(item.openingQty || 0) * Number(item.price || 0)), 0);
         const totalQuantity = items.reduce((sum, item) => sum + item.openingQty, 0);
-        const lowStockCount = items.filter(item => item.openingQty <= (item.minStock || 10)).length;
-        const outOfStockCount = items.filter(item => item.openingQty === 0).length;
+        const lowStockCount = items.filter(item => Number(item.openingQty || 0) <= (item.minStock || 10)).length;
+        const outOfStockCount = items.filter(item => Number(item.openingQty || 0) === 0).length;
 
         return {
           branchId: branch._id,
@@ -430,8 +435,8 @@ export const exportReport = async (req, res) => {
           Name: item.name,
           Category: item.category,
           Quantity: item.openingQty,
-          Price: item.price,
-          Value: (item.openingQty * item.price).toFixed(2),
+          Price: Number(item.price || 0),
+          Value: (Number(item.openingQty || 0) * Number(item.price || 0)).toFixed(2),
           Branch: item.branchId?.name || 'Unknown',
           MinStock: item.minStock || 10
         }));
@@ -446,6 +451,11 @@ export const exportReport = async (req, res) => {
 
     if (format === 'csv') {
       // Convert to CSV
+      if (!data.length) {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${type}-report.csv"`);
+        return res.send('Name,Category,Quantity,Price,Value,Branch,MinStock\n');
+      }
       const headers = Object.keys(data[0]).join(',');
       const rows = data.map(row => Object.values(row).join(','));
       const csv = [headers, ...rows].join('\n');

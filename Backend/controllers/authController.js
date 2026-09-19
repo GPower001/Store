@@ -5,6 +5,7 @@ import {
   loginUser as loginUserService 
 } from "../services/authService.js";
 import User from "../models/userModel.js";
+import Tenant from "../models/Tenant.js";
 import TokenBlacklist from "../models/TokenBlacklist.js"
 
 /**
@@ -307,7 +308,7 @@ export const getMe = async (req, res) => {
     const user = await User.findById(req.user.id)
       .select("-password")
       .populate("branchId", "name location")
-      .populate("tenantId", "companyName subscriptionTier status");
+      .populate("tenantId", "companyName industry city state phone address billingEmail currency region notificationPreferences subscriptionTier status");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -324,5 +325,48 @@ export const getMe = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (name?.trim()) user.name = name.trim();
+    if (email?.trim()) user.email = email.trim().toLowerCase();
+    if (password?.trim()) user.password = password;
+    await user.save();
+    const updated = await User.findById(user._id).select("-password").populate("tenantId", "companyName industry city state phone address billingEmail currency region notificationPreferences subscriptionTier status").populate("branchId", "name location").lean();
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message || "Unable to update profile" });
+  }
+};
+
+export const updateOrganization = async (req, res) => {
+  try {
+    const { companyName, industry, city, state, phone, address, billingEmail, currency, region, notificationPreferences } = req.body;
+    const tenant = await Tenant.findById(req.user.tenantId);
+    if (!tenant) return res.status(404).json({ message: "Organization not found" });
+    if (companyName?.trim()) tenant.companyName = companyName.trim();
+    if (industry !== undefined) tenant.industry = industry.trim();
+    if (city !== undefined) tenant.city = city.trim();
+    if (state !== undefined) tenant.state = state.trim();
+    if (phone !== undefined) tenant.phone = phone.trim();
+    if (address !== undefined) tenant.address = address.trim();
+    if (billingEmail !== undefined) tenant.billingEmail = billingEmail.trim().toLowerCase();
+    if (currency !== undefined) tenant.currency = currency.trim().toUpperCase();
+    if (region !== undefined) tenant.region = region.trim().toUpperCase();
+    if (notificationPreferences && typeof notificationPreferences === "object") {
+      tenant.notificationPreferences = {
+        ...tenant.notificationPreferences?.toObject?.(),
+        ...notificationPreferences,
+      };
+    }
+    await tenant.save();
+    res.json({ success: true, data: tenant.toObject() });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message || "Unable to update organization" });
   }
 };

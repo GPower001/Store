@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
 	Boxes,
 	CircleAlert,
@@ -17,6 +18,10 @@ import { getDashboardData } from "../services/dashboardService";
 const formatCurrency = (value) => `\u20A6${Number(value || 0).toLocaleString("en-US")}`;
 
 const formatGreetingName = (name) => (name ? name.split(" ")[0] : "");
+const dateKey = (date) => {
+	const value = new Date(date);
+	return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+};
 
 function getTimeOfDay() {
 	const hour = new Date().getHours();
@@ -26,6 +31,7 @@ function getTimeOfDay() {
 }
 
 function Dashboard() {
+	const navigate = useNavigate();
 	const user = useAuthStore((state) => state.user);
 	const [dashboard, setDashboard] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -86,10 +92,12 @@ function Dashboard() {
 		if (entry?.itemId && typeof entry.itemId === "object") {
 			return {
 				title: entry.itemId.name || "Inventory update",
-				detail: `${entry.movementType || "Updated"} • ${new Date(entry.createdAt || Date.now()).toLocaleDateString("en-US", {
-					month: "short",
-					day: "numeric",
-				})}`,
+				detail: entry.createdAt
+					? `${entry.movementType || "Updated"} • ${new Date(entry.createdAt).toLocaleDateString("en-US", {
+						month: "short",
+						day: "numeric",
+					})}`
+					: entry.movementType || "Recent update",
 			};
 		}
 		return {
@@ -124,8 +132,8 @@ function Dashboard() {
 					<p className="dashboard-subtitle">Here's what's happening across your business today.</p>
 				</div>
 				<div className="dashboard-actions">
-					<button className="secondary-action"><Plus size={16} /> Add product</button>
-					<button className="primary-action-dark"><ShoppingCart size={16} /> Open POS</button>
+					<button className="secondary-action" onClick={() => navigate("/inventory?add=1")}><Plus size={16} /> Add product</button>
+					<button className="primary-action-dark" onClick={() => navigate("/pos")}><ShoppingCart size={16} /> Open POS</button>
 				</div>
 			</header>
 
@@ -337,7 +345,7 @@ function SalesChart({ data }) {
 	const days = Array.from({ length: 7 }).map((_, index) => {
 		const date = new Date();
 		date.setDate(date.getDate() - (6 - index));
-		const match = data.find((entry) => new Date(entry.date).toDateString() === date.toDateString());
+		const match = data.find((entry) => entry.date === dateKey(date));
 		return {
 			label: new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date),
 			total: Number(match?.total || 0),

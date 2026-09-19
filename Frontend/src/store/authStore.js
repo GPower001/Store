@@ -27,6 +27,11 @@ const useAuthStore = create((set) => ({
 
       console.log("LOGIN RESPONSE:", data);
 
+      if (data.twoFactorRequired) {
+        set({ loading: false, error: null });
+        return data;
+      }
+
       set({
         token: data.token,
         user: data.user,
@@ -63,6 +68,11 @@ const useAuthStore = create((set) => ({
         error: null,
       });
     }
+  },
+
+  updateUser: (user) => {
+    localStorage.setItem("inventory_user", JSON.stringify(user));
+    set({ user });
   },
 
   clearError: () => {

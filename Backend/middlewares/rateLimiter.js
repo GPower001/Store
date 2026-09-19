@@ -176,6 +176,7 @@ import rateLimit from "express-rate-limit";
 export const generalLimiterRedis = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
+  skip: (req) => req.path.startsWith("/notifications"),
   message: {
     success: false,
     message: "Too many requests from this IP, please try again after 15 minutes"
@@ -300,4 +301,15 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false
+});
+
+export const notificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5000,
+  message: {
+    success: false,
+    message: "Notification polling limit exceeded, please try again later"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });

@@ -529,8 +529,10 @@ const recordStockMovement = async (itemId, tenantId, branchId, userId, movementT
 export const getItems = async (req, res) => {
   try {
     const { tenantId, branchId } = getTenantAndBranchId(req);
-    
-    const items = await Item.find({ tenantId, branchId })
+
+    const query = Item.find({ tenantId, branchId, isDeleted: false });
+    if (req.query.summary === "true") query.select("name category itemCode openingQty minStock price unit image expiryDate");
+    const items = await query
       .sort({ createdAt: -1 });
     
     res.status(200).json({ success: true, data: items || [] });
@@ -546,7 +548,7 @@ export const getItems = async (req, res) => {
  */
 export const addItem = async (req, res) => {
   try {
-    const { name, category, openingQty, minStock, expiryDate, itemCode, price, description, unit } = req.body;
+    const { name, category, openingQty, minStock, expiryDate, itemCode, price, costPrice, description, unit, weightPerUnit } = req.body;
 
     if (!name || !category) {
       return res.status(400).json({ message: "Name and category are required" });
@@ -599,8 +601,10 @@ export const addItem = async (req, res) => {
       itemCode: itemCode?.trim() || `ITEM-${Date.now()}`,
       expiryDate: parsedExpiry,
       price: price !== undefined ? Number(price) : undefined,
+      costPrice: costPrice !== undefined ? Number(costPrice) : undefined,
       description,
       unit,
+      weightPerUnit: weightPerUnit !== undefined ? Number(weightPerUnit) : undefined,
       tenantId,
       branchId,
       image: req.file ? `/uploads/items/${req.file.filename}` : null,
@@ -682,12 +686,14 @@ export const updateItem = async (req, res) => {
       additionalStock,
       minStock,
       price,
+      costPrice,
       expiryDate,
       name,
       category,
       itemCode,
       description,
       unit,
+      weightPerUnit,
     } = req.body;
 
     const previousQty = item.openingQty;
@@ -724,11 +730,13 @@ export const updateItem = async (req, res) => {
     // Update other fields
     if (Number.isFinite(minStock)) item.minStock = minStock;
     if (Number.isFinite(price)) item.price = price;
+    if (Number.isFinite(costPrice)) item.costPrice = costPrice;
     if (name?.trim()) item.name = name.trim();
     if (category?.trim()) item.category = category.trim();
     if (itemCode?.trim()) item.itemCode = itemCode.trim();
     if (description !== undefined) item.description = description;
     if (unit?.trim()) item.unit = unit.trim();
+    if (Number.isFinite(weightPerUnit)) item.weightPerUnit = weightPerUnit;
 
     if (expiryDate !== undefined) {
       if (expiryDate === null || expiryDate === "") {

@@ -303,9 +303,90 @@
 //   }
 // };
 
+import crypto from "crypto";
 import Tenant from "../models/Tenant.js";
+import User from "../models/userModel.js";
+import Payment from "../models/Payment.js";
 import * as subscriptionService from "../services/subscriptionService.js";
 import { SUBSCRIPTION_PLANS, ADDITIONAL_STAFF_PRICING } from "../config/subscriptionPlans.js";
+
+const paystackRequest = async (path, options = {}) => {
+  if (!process.env.PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured");
+  const response = await fetch(`https://api.paystack.co${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json();
+  if (!response.ok || !data.status) throw new Error(data.message || "Paystack request failed");
+  return data.data;
+};
+
+export const initializeSubscriptionPayment = async (req, res) => {
+  try {
+    const { newTier, staffSlots, callbackUrl } = req.body;
+    const requestedSlots = Number(staffSlots || 0);
+    const isStaffPurchase = Number.isInteger(requestedSlots) && requestedSlots > 0;
+    if (!isStaffPurchase && !["basic", "premium"].includes(newTier)) return res.status(400).json({ success: false, message: "Choose a valid paid plan or staff slot quantity" });
+
+    const tenant = await Tenant.findById(req.user.tenantId);
+    const user = await User.findById(req.user.id).select("email name");
+    const plan = isStaffPurchase ? null : SUBSCRIPTION_PLANS[newTier];
+    if (!tenant || !user) return res.status(404).json({ success: false, message: "Account not found" });
+
+    if (isStaffPurchase && tenant.subscriptionTier === "free") return res.status(400).json({ success: false, message: "Upgrade to a paid plan before adding staff slots" });
+    if (!isStaffPurchase) {
+      const validation = subscriptionService.validateSubscriptionUpgrade(tenant.subscriptionTier, newTier);
+      if (!validation.valid) return res.status(400).json({ success: false, message: validation.message });
+    }
+    const amount = isStaffPurchase ? requestedSlots * ADDITIONAL_STAFF_PRICING[tenant.subscriptionTier] : plan.price;
+
+    const payment = await paystackRequest("/transaction/initialize", {
+      method: "POST",
+      body: JSON.stringify({
+        email: user.email,
+        amount: Math.round(amount * 100),
+        currency: "NGN",
+        callback_url: callbackUrl || `${process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL_DEV}/subscription/checkout`,
+        metadata: { tenantId: String(tenant._id), tier: isStaffPurchase ? tenant.subscriptionTier : newTier, paymentType: isStaffPurchase ? "staff-slots" : "subscription", staffSlots: isStaffPurchase ? requestedSlots : 0, userId: String(user._id) },
+      }),
+    });
+
+    await Payment.create({ tenantId: tenant._id, userId: user._id, reference: payment.reference, tier: isStaffPurchase ? tenant.subscriptionTier : newTier, paymentType: isStaffPurchase ? "staff-slots" : "subscription", staffSlots: isStaffPurchase ? requestedSlots : 0, amount });
+    res.json({ success: true, data: { authorizationUrl: payment.authorization_url, reference: payment.reference } });
+  } catch (error) {
+    console.error("Initialize subscription payment error:", error);
+    res.status(500).json({ success: false, message: error.message || "Unable to initialize payment" });
+  }
+};
+
+export const verifySubscriptionPayment = async (req, res) => {
+  try {
+    const payment = await Payment.findOne({ reference: req.params.reference, tenantId: req.user.tenantId });
+    if (!payment) return res.status(404).json({ success: false, message: "Payment reference not found" });
+    if (payment.status === "success") return res.json({ success: true, message: "Subscription already activated" });
+
+    const result = await paystackRequest(`/transaction/verify/${encodeURIComponent(payment.reference)}`);
+    if (result.status !== "success" || Number(result.amount) !== Math.round(payment.amount * 100) || result.currency !== "NGN") {
+      payment.status = "failed";
+      await payment.save();
+      return res.status(400).json({ success: false, message: "Payment could not be verified" });
+    }
+
+    if (payment.paymentType === "staff-slots") await subscriptionService.addAdditionalStaffSlots(payment.tenantId, payment.staffSlots);
+    else await subscriptionService.updateTenantLimits(payment.tenantId, payment.tier);
+    payment.status = "success";
+    payment.paidAt = new Date();
+    await payment.save();
+    res.json({ success: true, message: payment.paymentType === "staff-slots" ? "Staff slots added" : "Subscription activated", data: { tier: payment.tier, paymentType: payment.paymentType, staffSlots: payment.staffSlots } });
+  } catch (error) {
+    console.error("Verify subscription payment error:", error);
+    res.status(500).json({ success: false, message: "Unable to verify payment" });
+  }
+};
 
 /**
  * @desc Get all available subscription plans
@@ -394,34 +475,10 @@ export const getSubscriptionStatus = async (req, res) => {
  * @access Private/Admin
  */
 export const addStaffSlots = async (req, res) => {
-  try {
-    const tenantId = req.user.tenantId;
-    const { numberOfSlots, paymentMethodId } = req.body;
-
-    if (!numberOfSlots || numberOfSlots < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Number of slots must be at least 1"
-      });
-    }
-
-    const result = await subscriptionService.addAdditionalStaffSlots(
-      tenantId,
-      numberOfSlots,
-      paymentMethodId
-    );
-
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.error("Add Staff Slots Error:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message || "Failed to add staff slots"
-    });
-  }
+  return res.status(402).json({
+    success: false,
+    message: "Payment required. Start a staff-slot checkout before adding capacity."
+  });
 };
 
 /**
@@ -490,25 +547,7 @@ export const upgradeSubscription = async (req, res) => {
       });
     }
 
-    // TODO: Process payment
-    const updatedTenant = await subscriptionService.updateTenantLimits(
-      tenantId, 
-      newTier
-    );
-
-    res.status(200).json({
-      success: true,
-      message: `Successfully upgraded to ${SUBSCRIPTION_PLANS[newTier].name}`,
-      data: {
-        tier: updatedTenant.subscriptionTier,
-        maxBranches: updatedTenant.maxBranches,
-        maxAdmins: updatedTenant.maxAdmins,
-        maxStaff: updatedTenant.maxStaff,
-        maxItems: updatedTenant.maxItems,
-        subscriptionEndDate: updatedTenant.subscriptionEndDate,
-        monthlyCost: updatedTenant.calculateMonthlyCost()
-      }
-    });
+    return res.status(402).json({ success: false, message: "Payment required. Use the subscription checkout before upgrading." });
   } catch (error) {
     console.error("Upgrade Subscription Error:", error);
     res.status(500).json({ 
@@ -620,6 +659,11 @@ export const checkLimits = async (req, res) => {
  */
 export const handlePaymentWebhook = async (req, res) => {
   try {
+    const signature = req.headers["x-paystack-signature"];
+    const expected = crypto.createHmac("sha512", process.env.PAYSTACK_SECRET_KEY || "").update(req.rawBody || JSON.stringify(req.body)).digest("hex");
+    if (!signature || !process.env.PAYSTACK_SECRET_KEY || signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+      return res.status(401).json({ success: false, message: "Invalid webhook signature" });
+    }
     const { event, data } = req.body;
 
     switch (event) {

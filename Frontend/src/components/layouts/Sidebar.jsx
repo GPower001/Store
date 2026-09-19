@@ -93,7 +93,7 @@ function Sidebar({ open, collapsed, onClose, onCollapse }) {
 					<div className="meter-track">
 						<span />
 					</div>
-					<button>
+					<button type="button" onClick={() => navigate("/subscription")}>
 						View plans <ChevronDown size={14} />
 					</button>
 				</div>

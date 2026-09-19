@@ -46,31 +46,16 @@ export const createPurchaseOrder = async (req, res) => {
 
     // Calculate totals
     let subtotal = 0;
-    const processedItems = await Promise.all(
-      items.map(async (item) => {
-        const itemDoc = await Item.findOne({ 
-          _id: item.itemId, 
-          tenantId, 
-          isDeleted: false 
-        });
-
-        if (!itemDoc) {
-          throw new Error(`Item ${item.itemId} not found`);
-        }
-
-        const totalPrice = item.quantity * item.unitPrice;
-        subtotal += totalPrice;
-
-        return {
-          itemId: item.itemId,
-          itemName: itemDoc.name,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice,
-          notes: item.notes || ''
-        };
-      })
-    );
+    const itemIds = items.map((item) => item.itemId);
+    const itemDocs = await Item.find({ _id: { $in: itemIds }, tenantId, isDeleted: false }).select("name").lean();
+    const itemMap = new Map(itemDocs.map((item) => [String(item._id), item]));
+    const processedItems = items.map((item) => {
+      const itemDoc = itemMap.get(String(item.itemId));
+      if (!itemDoc) throw new Error(`Item ${item.itemId} not found`);
+      const totalPrice = Number(item.quantity) * Number(item.unitPrice);
+      subtotal += totalPrice;
+      return { itemId: item.itemId, itemName: itemDoc.name, quantity: item.quantity, unitPrice: item.unitPrice, totalPrice, notes: item.notes || '' };
+    });
 
     const taxAmount = (subtotal * (taxRate || 0)) / 100;
     const totalAmount = subtotal + taxAmount + (shippingCost || 0) - (discount || 0);
@@ -93,13 +78,13 @@ export const createPurchaseOrder = async (req, res) => {
       expectedDeliveryDate,
       notes,
       internalNotes,
-      createdBy: req.user._id,
+      createdBy: req.user.id,
       status: 'draft'
     });
 
     // Log audit
     await logAudit({
-      userId: req.user._id,
+      userId: req.user.id,
       userName: req.user.name,
       userEmail: req.user.email,
       userRole: req.user.role,
