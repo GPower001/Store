@@ -39,19 +39,15 @@ import { Server } from "socket.io";
 import http from "http";
 import express from "express";
 import jwt from "jsonwebtoken"; // Add JWT for authentication
+import "dotenv/config";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: [
-            "http://localhost:5173", // Local development frontend
-            process.env.FRONTEND_URL, // Add production URL from env
-        ],
+        origin: [process.env.FRONTEND_URL_PROD, process.env.FRONTEND_URL_DEV, "http://localhost:5173"].filter(Boolean),
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
         credentials: true,
     },
@@ -73,8 +69,11 @@ io.use((socket, next) => {
             return next(new Error('Authentication token required'));
         }
 
-        // Verify JWT token (replace with your actual secret)
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        if (!process.env.JWT_SECRET) {
+            return next(new Error("Server authentication is not configured"));
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.userId = decoded.userId;
         socket.branchId = decoded.branchId; // Assuming user has associated branch
         socket.userRole = decoded.role; // For role-based permissions

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	AlertTriangle,
-	BarChart3,
 	Boxes,
+	Check,
+	ChevronDown,
 	Download,
 	PackageCheck,
 	RefreshCw,
@@ -29,6 +30,8 @@ function Reports() {
 	const [valuation, setValuation] = useState(null);
 	const [stock, setStock] = useState(null);
 	const [categories, setCategories] = useState(null);
+	const [categoryOpen, setCategoryOpen] = useState(false);
+	const categoryPickerRef = useRef(null);
 	const [loading, setLoading] = useState(true);
 	const [exporting, setExporting] = useState(false);
 	const [error, setError] = useState("");
@@ -70,6 +73,37 @@ function Reports() {
 	}, [reportParams]);
 
 	const categoryBars = useMemo(() => (categories?.categories || []).slice(0, 6), [categories]);
+	const categoryOptions = useMemo(() => {
+		const categoryValues = [
+			...(categories?.categories || []).map((category) => category.category),
+			...(valuation?.byCategory || []).map((category) => category.category),
+			...(valuation?.items || []).map((item) => item.category),
+		].filter((category) => typeof category === "string" && category.trim());
+		const uniqueCategories = new Map();
+
+		categoryValues.forEach((category) => {
+			const trimmedCategory = category.trim();
+			const normalizedCategory = trimmedCategory.toLocaleLowerCase();
+			if (!uniqueCategories.has(normalizedCategory)) uniqueCategories.set(normalizedCategory, trimmedCategory);
+		});
+
+		return [...uniqueCategories.values()].sort((a, b) => a.localeCompare(b));
+	}, [categories, valuation]);
+	useEffect(() => {
+		if (!categoryOpen) return undefined;
+		const closePicker = (event) => {
+			if (!categoryPickerRef.current?.contains(event.target)) setCategoryOpen(false);
+		};
+		const closeOnEscape = (event) => {
+			if (event.key === "Escape") setCategoryOpen(false);
+		};
+		document.addEventListener("mousedown", closePicker);
+		document.addEventListener("keydown", closeOnEscape);
+		return () => {
+			document.removeEventListener("mousedown", closePicker);
+			document.removeEventListener("keydown", closeOnEscape);
+		};
+	}, [categoryOpen]);
 	const maxCategoryValue = Math.max(...categoryBars.map((category) => Number(category.totalValue || 0)), 1);
 	const alerts = [
 		...(stock?.stockAlerts?.critical || []).map((item) => ({ ...item, tone: "critical", label: "Out of stock" })),
@@ -93,22 +127,206 @@ function Reports() {
 		}
 	};
 
-	return <div className="reports-page">
-		<header className="dashboard-heading reports-heading">
-			<div className="dashboard-heading-copy"><p className="panel-kicker">Business intelligence</p><h1><BarChart3 size={29} /> Reports</h1><p className="dashboard-subtitle">Understand stock value, category mix, and the products that need attention.</p></div>
-			<div className="dashboard-actions"><button className="secondary-action" onClick={loadReports} disabled={loading}><RefreshCw size={15} /> Refresh</button><button className="primary-action-dark" onClick={exportReport} disabled={exporting}><Download size={15} /> {exporting ? "Exporting..." : "Export CSV"}</button></div>
-		</header>
-		<section className="reports-filters" aria-label="Report filters"><label><span>Category</span><select name="category" value={filters.category} onChange={updateFilter}><option value="">All categories</option><option value="General">General</option><option value="Consumables">Consumables</option><option value="Medications">Medications</option></select></label><label><span>From</span><input name="startDate" type="date" value={filters.startDate} onChange={updateFilter} /></label><label><span>To</span><input name="endDate" type="date" value={filters.endDate} onChange={updateFilter} /></label>{(filters.category || filters.startDate || filters.endDate) && <button className="report-reset" onClick={resetFilters}><XCircle size={15} /> Clear filters</button>}</section>
-		{error && <div className="dashboard-alert" role="alert"><AlertTriangle size={17} /> {error}</div>}
-		{loading && !valuation ? <div className="dashboard-loading">Loading reports...</div> : <>
-			<section className="reports-metrics" aria-label="Report summary"><ReportMetric label="Inventory value" value={formatCurrency(valuation?.summary?.totalValue)} icon={<TrendingUp size={17} />} /><ReportMetric label="Products" value={valuation?.summary?.totalItems || 0} icon={<Boxes size={17} />} /><ReportMetric label="Units on hand" value={Number(valuation?.summary?.totalQuantity || 0).toLocaleString()} icon={<PackageCheck size={17} />} /><ReportMetric label="Stock alerts" value={(stock?.summary?.outOfStock || 0) + (stock?.summary?.lowStock || 0)} icon={<AlertTriangle size={17} />} /></section>
-			<section className="reports-grid"><article className="report-panel report-category-panel"><div className="report-panel-heading"><div><p className="section-kicker">Value distribution</p><h2>Inventory by category</h2></div><span>{categories?.summary?.totalCategories || 0} categories</span></div>{categoryBars.length ? <div className="category-bars">{categoryBars.map((category) => <div className="category-bar-row" key={category.category}><div className="category-bar-meta"><strong>{category.category}</strong><span>{formatCurrency(category.totalValue)}</span></div><div className="category-bar-track"><span style={{ width: `${(Number(category.totalValue || 0) / maxCategoryValue) * 100}%` }} /></div><small>{category.itemCount} products · {Number(category.totalQuantity || 0).toLocaleString()} units</small></div>)}</div> : <ReportEmpty text="No category data available for this range." />}</article><article className="report-panel report-alert-panel"><div className="report-panel-heading"><div><p className="section-kicker">Action queue</p><h2>Stock health</h2></div><span>{alerts.length} alerts</span></div><div className="report-alert-list">{alerts.length ? alerts.map((item) => <div className="report-alert-row" key={`${item._id}-${item.label}`}><span className={`report-alert-icon ${item.tone}`}>{item.tone === "critical" ? <XCircle size={15} /> : <AlertTriangle size={15} />}</span><div><strong>{item.name}</strong><small>{item.label} · {item.currentStock} units remaining · reorder at {item.minStock}</small></div></div>) : <ReportEmpty text="All products are within healthy stock levels." />}</div></article></section>
-			<section className="report-panel report-table-panel"><div className="report-panel-heading"><div><p className="section-kicker">Detailed valuation</p><h2>Highest-value products</h2></div><span>{valuation?.items?.length || 0} products</span></div><div className="reports-table-wrap"><table className="reports-table"><thead><tr><th>Product</th><th>Category</th><th>Units</th><th>Selling price</th><th>Stock value</th></tr></thead><tbody>{(valuation?.items || []).sort((a, b) => Number(b.value || 0) - Number(a.value || 0)).slice(0, 10).map((item) => <tr key={item._id}><td><strong>{item.name}</strong><small>{item.branch}</small></td><td>{item.category}</td><td>{Number(item.quantity || 0).toLocaleString()}</td><td>{formatCurrency(item.price)}</td><td><strong>{formatCurrency(item.value)}</strong></td></tr>)}</tbody></table>{!valuation?.items?.length && <ReportEmpty text="No products available for this report." />}</div></section>
-		</>}
-	</div>;
+	const hasActiveFilters = filters.category || filters.startDate || filters.endDate;
+
+	return (
+		<div className="rep">
+			<header className="rep-hero">
+				<div className="rep-hero-copy">
+					<p className="rep-date">Business intelligence</p>
+					<h1>Reports</h1>
+					<p className="rep-hero-sub">Understand stock value, category mix, and the products that need attention.</p>
+				</div>
+				<div className="rep-hero-actions">
+					<button type="button" className="rep-btn rep-btn-light" onClick={loadReports} disabled={loading}>
+						<RefreshCw size={18} /> Refresh
+					</button>
+					<button type="button" className="rep-btn rep-btn-blue" onClick={exportReport} disabled={exporting}>
+						<Download size={18} /> {exporting ? "Exporting..." : "Export CSV"}
+					</button>
+				</div>
+			</header>
+
+			<section className="rep-filters" aria-label="Report filters">
+				<label className="rep-filter-field">
+					<span>Category</span>
+					<div className={`rep-category-picker${categoryOpen ? " is-open" : ""}`} ref={categoryPickerRef}>
+						<button
+							type="button"
+							className="rep-category-trigger"
+							aria-haspopup="listbox"
+							aria-expanded={categoryOpen}
+							onClick={() => setCategoryOpen((open) => !open)}
+						>
+							<span className={!filters.category ? "is-placeholder" : ""}>{filters.category || "All categories"}</span>
+							<ChevronDown size={18} aria-hidden="true" />
+						</button>
+						{categoryOpen && (
+							<div className="rep-category-menu" role="listbox" aria-label="Categories">
+								<button type="button" role="option" aria-selected={!filters.category} className={!filters.category ? "is-selected" : ""} onClick={() => { setFilters((current) => ({ ...current, category: "" })); setCategoryOpen(false); }}>
+									<span className="rep-category-dot all" /> All categories {!filters.category && <Check size={16} />}
+								</button>
+								{categoryOptions.map((category, index) => (
+									<button type="button" role="option" aria-selected={filters.category === category} className={filters.category === category ? "is-selected" : ""} key={category} onClick={() => { setFilters((current) => ({ ...current, category })); setCategoryOpen(false); }}>
+										<span className={`rep-category-dot tone-${index % 4}`} /> {category} {filters.category === category && <Check size={16} />}
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+				</label>
+				<label className="rep-filter-field">
+					<span>From</span>
+					<input name="startDate" type="date" value={filters.startDate} onChange={updateFilter} />
+				</label>
+				<label className="rep-filter-field">
+					<span>To</span>
+					<input name="endDate" type="date" value={filters.endDate} onChange={updateFilter} />
+				</label>
+				{hasActiveFilters && (
+					<button type="button" className="rep-reset" onClick={resetFilters}>
+						<XCircle size={16} /> Clear filters
+					</button>
+				)}
+			</section>
+
+			{error && (
+				<div className="rep-alert" role="alert">
+					<AlertTriangle size={18} /> {error}
+				</div>
+			)}
+
+			{loading && !valuation ? (
+				<div className="rep-loading" role="status">
+					<span className="rep-spinner" aria-hidden="true" />
+					<span>Loading reports...</span>
+				</div>
+			) : (
+				<>
+					<section className="rep-metrics" aria-label="Report summary">
+						<ReportMetric label="Inventory value" value={formatCurrency(valuation?.summary?.totalValue)} icon={<TrendingUp size={22} />} tone="mint" />
+						<ReportMetric label="Products" value={valuation?.summary?.totalItems || 0} icon={<Boxes size={22} />} tone="sky" />
+						<ReportMetric label="Units on hand" value={Number(valuation?.summary?.totalQuantity || 0).toLocaleString()} icon={<PackageCheck size={22} />} tone="sun" />
+						<ReportMetric label="Stock alerts" value={(stock?.summary?.outOfStock || 0) + (stock?.summary?.lowStock || 0)} icon={<AlertTriangle size={22} />} tone="pink" />
+					</section>
+
+					<section className="rep-grid">
+						<article className="rep-panel">
+							<header className="rep-panel-head">
+								<div>
+									<p className="rep-kicker">Value distribution</p>
+									<h2>Inventory by category</h2>
+								</div>
+								<span className="rep-badge">{categories?.summary?.totalCategories || 0} categories</span>
+							</header>
+							{categoryBars.length ? (
+								<div className="rep-category-bars">
+									{categoryBars.map((category) => (
+										<div className="rep-category-row" key={category.category}>
+											<div className="rep-category-meta">
+												<strong>{category.category}</strong>
+												<span>{formatCurrency(category.totalValue)}</span>
+											</div>
+											<div className="rep-category-track">
+												<span style={{ width: `${(Number(category.totalValue || 0) / maxCategoryValue) * 100}%` }} />
+											</div>
+											<small>{category.itemCount} products · {Number(category.totalQuantity || 0).toLocaleString()} units</small>
+										</div>
+									))}
+								</div>
+							) : (
+								<ReportEmpty text="No category data available for this range." />
+							)}
+						</article>
+
+						<article className="rep-panel">
+							<header className="rep-panel-head">
+								<div>
+									<p className="rep-kicker">Action queue</p>
+									<h2>Stock health</h2>
+								</div>
+								<span className="rep-badge">{alerts.length} alerts</span>
+							</header>
+							<div className="rep-alert-list">
+								{alerts.length ? (
+									alerts.map((item) => (
+										<div className="rep-alert-row" key={`${item._id}-${item.label}`}>
+											<span className={`rep-alert-icon ${item.tone}`}>
+												{item.tone === "critical" ? <XCircle size={16} /> : <AlertTriangle size={16} />}
+											</span>
+											<div>
+												<strong>{item.name}</strong>
+												<small>{item.label} · {item.currentStock} units remaining · reorder at {item.minStock}</small>
+											</div>
+										</div>
+									))
+								) : (
+									<ReportEmpty text="All products are within healthy stock levels." />
+								)}
+							</div>
+						</article>
+					</section>
+
+					<section className="rep-panel">
+						<header className="rep-panel-head">
+							<div>
+								<p className="rep-kicker">Detailed valuation</p>
+								<h2>Highest-value products</h2>
+							</div>
+							<span className="rep-badge">{valuation?.items?.length || 0} products</span>
+						</header>
+						<div className="rep-table-wrap">
+							<table className="rep-table">
+								<thead>
+									<tr>
+										<th>Product</th>
+										<th>Category</th>
+										<th>Units</th>
+										<th>Selling price</th>
+										<th>Stock value</th>
+									</tr>
+								</thead>
+								<tbody>
+									{(valuation?.items || [])
+										.sort((a, b) => Number(b.value || 0) - Number(a.value || 0))
+										.slice(0, 10)
+										.map((item) => (
+											<tr key={item._id}>
+												<td>
+													<strong>{item.name}</strong>
+													<small>{item.branch}</small>
+												</td>
+												<td>{item.category}</td>
+												<td>{Number(item.quantity || 0).toLocaleString()}</td>
+												<td>{formatCurrency(item.price)}</td>
+												<td><strong>{formatCurrency(item.value)}</strong></td>
+											</tr>
+										))}
+								</tbody>
+							</table>
+							{!valuation?.items?.length && <ReportEmpty text="No products available for this report." />}
+						</div>
+					</section>
+				</>
+			)}
+		</div>
+	);
 }
 
-function ReportMetric({ label, value, icon }) { return <article className="report-metric"><div><span>{label}</span><strong>{value}</strong></div><i>{icon}</i></article>; }
-function ReportEmpty({ text }) { return <p className="report-empty">{text}</p>; }
+function ReportMetric({ label, value, icon, tone = "sky" }) {
+	return (
+		<article className={`rep-metric tone-${tone}`}>
+			<div className="rep-metric-head">
+				<span className="rep-metric-label">{label}</span>
+				<span className="rep-metric-icon">{icon}</span>
+			</div>
+			<strong className="rep-metric-value">{value}</strong>
+		</article>
+	);
+}
+
+function ReportEmpty({ text }) {
+	return <p className="rep-empty">{text}</p>;
+}
 
 export default Reports;

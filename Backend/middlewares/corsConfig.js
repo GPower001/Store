@@ -3,20 +3,22 @@ import cors from "cors";
 /**
  * Enhanced CORS configuration
  */
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:4173",
-  process.env.FRONTEND_URL,
-  "https://inventory-sycr.onrender.com",
-];
+const getAllowedOrigins = () => {
+  if (process.env.NODE_ENV === "production") return [process.env.FRONTEND_URL_PROD].filter(Boolean);
+  return [
+    process.env.FRONTEND_URL_DEV,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+  ].filter(Boolean);
+};
 
 export const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.includes(origin)) {
+    if (getAllowedOrigins().includes(origin)) {
       return callback(null, true);
     }
     

@@ -213,7 +213,7 @@ export const validateAddItem = [
   body('category')
     .trim()
     .notEmpty().withMessage('Category is required')
-    .isIn(['General', 'Consumables', 'Medications']).withMessage('Invalid category'),
+    .isLength({ min: 1, max: 100 }).withMessage('Category must be between 1 and 100 characters'),
   
   body('openingQty')
     .notEmpty().withMessage('Opening quantity is required')

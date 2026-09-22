@@ -313,3 +313,24 @@ export const notificationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+/**
+ * Rate limiter for interactive report reads.
+ * A report page loads several endpoints together and can be refreshed while filters change.
+ */
+export const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  message: {
+    success: false,
+    message: "Too many report requests, please try again later"
+  },
+  keyGenerator: (req, res) => {
+    if (req.user?.id) {
+      return `user-report-${req.user.id}`;
+    }
+    return undefined;
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});

@@ -9,7 +9,9 @@ import {
   deleteUser,
   getMe,
   updateProfile,
-  updateOrganization
+  updateOrganization,
+  forgotPassword,
+  resetPasswordController
 } from "../controllers/authController.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
 import adminOnly from "../middlewares/adminOnly.js";
@@ -19,7 +21,8 @@ import { disableTwoFactor, enableTwoFactor, getTwoFactorStatus, setupTwoFactor, 
 // SECURITY IMPORTS
 import { 
   authLimiter, 
-  registrationLimiter 
+  registrationLimiter,
+  passwordResetLimiter
 } from "../middlewares/rateLimiter.js";
 import {
   validateLogin,
@@ -61,6 +64,8 @@ router.post(
   validateLogin,    // Input validation
   login
 );
+router.post("/forgot-password", passwordResetLimiter, forgotPassword);
+router.post("/reset-password/:token", passwordResetLimiter, resetPasswordController);
 
 // ==========================================
 // PROTECTED ROUTES
