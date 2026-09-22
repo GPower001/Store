@@ -69,6 +69,14 @@ const userSchema = new mongoose.Schema(
     twoFactorSecret: {
       type: String,
       select: false
+    },
+    passwordResetTokenHash: {
+      type: String,
+      select: false
+    },
+    passwordResetExpiresAt: {
+      type: Date,
+      select: false
     }
     
   },

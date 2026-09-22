@@ -117,6 +117,8 @@
 
 
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import sgMail from "@sendgrid/mail";
 import User from "../models/userModel.js";
 import Tenant from "../models/Tenant.js";
 import Branch from "../models/branchModel.js";
@@ -402,4 +404,50 @@ export const loginUser = async (credentials) => {
       subscriptionTier: user.tenantId.subscriptionTier,
     },
   };
+};
+
+export const requestPasswordReset = async (email) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await User.findOne({ email: normalizedEmail }).select("+passwordResetTokenHash +passwordResetExpiresAt");
+
+  if (!user || !user.isActive) return;
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  user.passwordResetTokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  user.passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  await user.save({ validateBeforeSave: false });
+
+  const configuredFrontendUrl = process.env.NODE_ENV === "production"
+    ? process.env.FRONTEND_URL_PROD
+    : process.env.FRONTEND_URL_DEV;
+  if (!configuredFrontendUrl) throw new Error("Password reset frontend URL is not configured");
+  const frontendUrl = configuredFrontendUrl;
+  const resetUrl = `${frontendUrl.replace(/\/$/, "")}/reset-password/${rawToken}`;
+  if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_FROM) {
+    throw new Error("Password reset email is not configured");
+  }
+
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  await sgMail.send({
+    from: process.env.SENDGRID_FROM,
+    to: normalizedEmail,
+    subject: "Reset your StockRoom password",
+    text: `Reset your StockRoom password using this link. It expires in 15 minutes: ${resetUrl}`,
+    html: `<p>Reset your StockRoom password using the link below. It expires in 15 minutes.</p><p><a href="${resetUrl}">Reset password</a></p>`,
+  });
+};
+
+export const resetPassword = async (rawToken, password) => {
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const user = await User.findOne({
+    passwordResetTokenHash: tokenHash,
+    passwordResetExpiresAt: { $gt: new Date() },
+  }).select("+passwordResetTokenHash +passwordResetExpiresAt");
+
+  if (!user) throw new Error("This password reset link is invalid or has expired");
+
+  user.password = password;
+  user.passwordResetTokenHash = undefined;
+  user.passwordResetExpiresAt = undefined;
+  await user.save();
 };

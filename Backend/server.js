@@ -42,8 +42,10 @@ import reportRoutes from "./routes/reportRoutes.js"
 import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js"
 import posRoutes from "./routes/posRoutes.js"
 import invoiceRoutes from "./routes/invoiceRoutes.js";
+import { assertEnvironment } from "./config/environment.js";
 
 dotenv.config();
+assertEnvironment();
 
 // --------------------
 // Database Connection
@@ -272,7 +274,17 @@ console.log("   JWT_SECRET:", process.env.JWT_SECRET ? "Loaded" : "Missing");
 console.log("   MONGODB_URI:", process.env.MONGO_URI ? "Loaded" : "Missing");
 console.log("   NODE_ENV:", process.env.NODE_ENV || "development");
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`\nPort ${PORT} is already in use. Stop the existing backend process or start this server with a different PORT.`);
+    process.exitCode = 1;
+    return;
+  }
+  console.error("Server error:", error);
+  process.exitCode = 1;
+});
+
 server.listen(PORT, () => {
   console.log(`\nServer running on port ${PORT}`);
   console.log(`API URL: http://localhost:${PORT}`);

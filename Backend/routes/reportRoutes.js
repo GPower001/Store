@@ -8,15 +8,15 @@ import {
   exportReport
 } from "../controllers/reportController.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
-import { expensiveOperationLimiter } from "../middlewares/rateLimiter.js";
+import { expensiveOperationLimiter, reportLimiter } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
 
 // All report routes require authentication
 router.use(authenticate);
 
-// Apply rate limiting to report endpoints
-router.use(expensiveOperationLimiter);
+// Interactive report reads are separate from the stricter export limiter.
+router.use(reportLimiter);
 
 /**
  * @route GET /api/reports/inventory-valuation
@@ -52,6 +52,6 @@ router.get("/branch-comparison", getBranchComparison);
  * @route GET /api/reports/export
  * @desc Export report data
  */
-router.get("/export", exportReport);
+router.get("/export", expensiveOperationLimiter, exportReport);
 
 export default router;

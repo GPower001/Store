@@ -7,6 +7,7 @@ import {
 import User from "../models/userModel.js";
 import Tenant from "../models/Tenant.js";
 import TokenBlacklist from "../models/TokenBlacklist.js"
+import { requestPasswordReset, resetPassword } from "../services/authService.js";
 
 /**
  * @desc Register new tenant (SME signup)
@@ -107,6 +108,43 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ message: "A valid email is required" });
+  }
+
+  try {
+    await requestPasswordReset(email);
+  } catch (error) {
+    console.error("Password Reset Request Error:", error);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "If an account exists for that email, a password reset link has been sent.",
+  });
+};
+
+export const resetPasswordController = async (req, res) => {
+  const { password, confirmPassword } = req.body;
+
+  if (!password || password.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters" });
+  }
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
+
+  try {
+    await resetPassword(req.params.token, password);
+    res.status(200).json({ success: true, message: "Password reset successfully" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };
 

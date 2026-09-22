@@ -13,7 +13,7 @@ export const getInventoryValuation = async (req, res) => {
     const tenantId = req.user.tenantId;
 
     // Build filter
-    const filter = { tenantId, isDeleted: false };
+    const filter = { tenantId, isDeleted: { $ne: true } };
     
     if (branchId) filter.branchId = branchId;
     if (category) filter.category = category;
@@ -111,7 +111,7 @@ export const getStockTrends = async (req, res) => {
     const { branchId, days = 30 } = req.query;
     const tenantId = req.user.tenantId;
 
-    const filter = { tenantId, isDeleted: false };
+    const filter = { tenantId, isDeleted: { $ne: true } };
     if (branchId) filter.branchId = branchId;
 
     // Get current stock levels
@@ -210,7 +210,7 @@ export const getTopItems = async (req, res) => {
     const { branchId, limit = 10, sortBy = 'value' } = req.query;
     const tenantId = req.user.tenantId;
 
-    const filter = { tenantId, isDeleted: false };
+    const filter = { tenantId, isDeleted: { $ne: true } };
     if (branchId) filter.branchId = branchId;
 
     const items = await Item.find(filter)
@@ -267,7 +267,7 @@ export const getCategoryAnalysis = async (req, res) => {
     const { branchId, startDate, endDate } = req.query;
     const tenantId = req.user.tenantId;
 
-    const filter = { tenantId, isDeleted: false };
+    const filter = { tenantId, isDeleted: { $ne: true } };
     if (branchId) filter.branchId = branchId;
     if (startDate || endDate) {
       filter.createdAt = {};
@@ -428,7 +428,7 @@ export const exportReport = async (req, res) => {
     // Get data based on report type
     switch (type) {
       case 'inventory':
-        const items = await Item.find({ tenantId, isDeleted: false })
+        const items = await Item.find({ tenantId, isDeleted: { $ne: true } })
           .populate('branchId', 'name')
           .lean();
         data = items.map(item => ({

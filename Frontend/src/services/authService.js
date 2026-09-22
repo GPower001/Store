@@ -14,6 +14,24 @@ export const login = async (credentials) => {
 	}
 };
 
+export const requestPasswordReset = async (email) => {
+	try {
+		const { data } = await api.post("/auth/forgot-password", { email });
+		return data;
+	} catch (error) {
+		throw new Error(getErrorMessage(error), { cause: error });
+	}
+};
+
+export const resetPassword = async (token, payload) => {
+	try {
+		const { data } = await api.post(`/auth/reset-password/${token}`, payload);
+		return data;
+	} catch (error) {
+		throw new Error(getErrorMessage(error), { cause: error });
+	}
+};
+
 export const registerTenant = async (details) => {
 	try {
 		const { data } = await api.post("/auth/register-tenant", details);
