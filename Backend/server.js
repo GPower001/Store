@@ -145,22 +145,6 @@ app.get("/", (req, res) => {
 
 
 // --------------------
-// Socket.IO
-// --------------------
-io.on("connection", (socket) => {
-  console.log("✅ New client connected:", socket.id);
-
-  socket.on("join-branch", (branchId) => {
-    if (branchId) {
-      socket.join(branchId);
-      console.log(`🔒 Socket ${socket.id} joined branch ${branchId}`);
-    }
-  });
-
-  socket.on("disconnect", () => console.log("❌ Client disconnected:", socket.id));
-});
-
-// --------------------
 // Cron Jobs
 // --------------------
 cron.schedule("0 * * * *", async () => {

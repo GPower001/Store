@@ -72,6 +72,15 @@ export const customSecurityHeaders = (req, res, next) => {
 
 import { body, param, query, validationResult } from "express-validator";
 
+const normalizeNigerianPhone = (value) => {
+  const digits = String(value).replace(/\D/g, '');
+
+  if (digits.startsWith('00234')) return `+${digits.slice(2)}`;
+  if (digits.startsWith('234')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+234${digits.slice(1)}`;
+  return `+234${digits}`;
+};
+
 /**
  * Handle validation errors
  */
@@ -196,7 +205,8 @@ export const validateTenantRegistration = [
   body('phone')
     .trim()
     .notEmpty().withMessage('Phone is required')
-    .matches(/^\+?[1-9]\d{1,14}$/).withMessage('Invalid phone number format'),
+    .customSanitizer(normalizeNigerianPhone)
+    .matches(/^\+234[789]\d{9}$/).withMessage('Enter a valid Nigerian phone number'),
   
   handleValidationErrors
 ];

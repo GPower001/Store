@@ -53,6 +53,7 @@
 
 import Notification from "../models/notificationModel.js";
 import Item from "../models/Item.js";
+import { emitToBranch } from "./socket.js";
 
 const lastTenantChecks = new Map();
 const CHECK_COOLDOWN_MS = 5000;
@@ -117,7 +118,12 @@ const checkLowStock = (io) => async (itemId = null, tenantId = null) => {  // âœ
 
           // Emit to the specific branch room
           if (io && item.branchId) {
-            io.to(item.branchId.toString()).emit("new-notification", existingNotification);
+            await emitToBranch(
+              item.tenantId,
+              item.branchId,
+              "new-notification",
+              existingNotification
+            );
           }
           
           notificationsProcessed++;
@@ -140,7 +146,12 @@ const checkLowStock = (io) => async (itemId = null, tenantId = null) => {  // âœ
 
         // Emit to the specific branch room
         if (io && item.branchId) {
-          io.to(item.branchId.toString()).emit("new-notification", notification);
+          await emitToBranch(
+            item.tenantId,
+            item.branchId,
+            "new-notification",
+            notification
+          );
         }
         
         notificationsProcessed++;

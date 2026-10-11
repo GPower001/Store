@@ -1,7 +1,12 @@
 import api from "./api";
 
-const getErrorMessage = (error) =>
-	error.response?.data?.error || error.response?.data?.message || "Something went wrong. Please try again.";
+const getErrorMessage = (error) => {
+	const response = error.response?.data;
+	return response?.error
+		|| response?.errors?.[0]?.message
+		|| response?.message
+		|| "Something went wrong. Please try again.";
+};
 
 export const login = async (credentials) => {
 	try {

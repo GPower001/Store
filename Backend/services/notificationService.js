@@ -94,7 +94,8 @@
 // };
 
 import Notification from "../models/notificationModel.js";
-import { io } from "../socket.js";
+import Branch from "../models/branchModel.js";
+import { emitToBranch } from "../utils/socket.js";
 import mongoose from "mongoose";
 
 // Utility function to validate ObjectId
@@ -103,14 +104,27 @@ const isValidObjectId = (id) => {
 };
 
 // Utility function to safely emit socket events
-const safeEmit = (room, event, data) => {
+const safeEmit = async (tenantId, branchId, event, data) => {
+  if (!isValidObjectId(tenantId) || !isValidObjectId(branchId)) {
+    throw new Error("Cannot emit a private notification without valid tenant and branch IDs");
+  }
+
+  const branch = await Branch.findOne({
+    _id: branchId,
+    tenantId,
+    isActive: true,
+  }).select("_id tenantId");
+
+  if (!branch) {
+    throw new Error("Cannot emit a notification for a missing, inactive, or mismatched branch");
+  }
+
   try {
-    io.to(room).emit(event, data);
-    console.log(`Emitted ${event} to room: ${room}`);
-    return true;
+    await emitToBranch(branch.tenantId, branch._id, event, data);
+    console.log(`Emitted ${event} to tenant ${tenantId}, branch ${branchId}`);
   } catch (error) {
-    console.error(`Failed to emit ${event} to room ${room}:`, error.message);
-    return false;
+    console.error(`Failed to emit ${event} to tenant ${tenantId}, branch ${branchId}:`, error.message);
+    throw new Error(`Failed to emit ${event} to its authorized branch`, { cause: error });
   }
 };
 
@@ -132,10 +146,16 @@ const createNotification = async (notificationData) => {
       throw new Error("Invalid branchId format");
     }
 
+    const branch = await Branch.findOne({ _id: branchId, isActive: true }).select("_id tenantId");
+    if (!branch?.tenantId) {
+      throw new Error("Notification branch association is missing, inactive, or invalid");
+    }
+
     // Check for duplicate notifications (optional - based on your business logic)
     if (type && item) {
       const existingNotification = await Notification.findOne({
         branchId,
+        tenantId: branch.tenantId,
         type,
         item,
         isRead: false
@@ -149,6 +169,8 @@ const createNotification = async (notificationData) => {
 
     const notification = new Notification({
       ...notificationData,
+      tenantId: branch.tenantId,
+      branchId: branch._id,
       createdAt: new Date(),
       isRead: false // Ensure new notifications are unread
     });
@@ -156,7 +178,7 @@ const createNotification = async (notificationData) => {
     await notification.save();
 
     // Emit notification to branch-specific room with error handling
-    safeEmit(branchId.toString(), "new-notification", notification);
+    await safeEmit(branch.tenantId, branch._id, "new-notification", notification);
 
     console.log(`Notification created: ${notification._id} for branch: ${branchId}`);
     return notification;
@@ -259,10 +281,28 @@ const updateNotification = async (notificationId, branchId, updates) => {
       throw new Error("No valid update fields provided");
     }
 
+    const current = await Notification.findOne({ _id: notificationId, branchId })
+      .select("_id tenantId branchId");
+    if (!current) {
+      throw new Error("Notification not found or does not belong to this branch");
+    }
+    if (!current.tenantId || !current.branchId) {
+      throw new Error("Notification has a missing tenant or branch association");
+    }
+
+    const branch = await Branch.findOne({
+      _id: current.branchId,
+      tenantId: current.tenantId,
+      isActive: true,
+    }).select("_id tenantId");
+    if (!branch) {
+      throw new Error("Notification has a missing, inactive, or mismatched branch association");
+    }
+
     updateData.updatedAt = new Date();
 
     const notification = await Notification.findOneAndUpdate(
-      { _id: notificationId, branchId },
+      { _id: notificationId, branchId: branch._id, tenantId: branch.tenantId },
       updateData,
       { new: true, runValidators: true }
     );
@@ -272,7 +312,7 @@ const updateNotification = async (notificationId, branchId, updates) => {
     }
 
     // Emit update event
-    safeEmit(branchId.toString(), "notification-updated", notification);
+    await safeEmit(branch.tenantId, branch._id, "notification-updated", notification);
 
     console.log(`Notification updated: ${notificationId}`);
     return notification;
@@ -303,7 +343,12 @@ const markAllAsRead = async (branchId, type = null) => {
       throw new Error("Invalid branchId format");
     }
 
-    const query = { branchId, isRead: false };
+    const branch = await Branch.findOne({ _id: branchId, isActive: true }).select("_id tenantId");
+    if (!branch?.tenantId) {
+      throw new Error("Notification branch association is missing, inactive, or invalid");
+    }
+
+    const query = { branchId: branch._id, tenantId: branch.tenantId, isRead: false };
     if (type) {
       query.type = type;
     }
@@ -317,7 +362,7 @@ const markAllAsRead = async (branchId, type = null) => {
     );
 
     // Emit batch update event
-    safeEmit(branchId.toString(), "notifications-bulk-updated", {
+    await safeEmit(branch.tenantId, branch._id, "notifications-bulk-updated", {
       action: "mark-all-read",
       count: result.modifiedCount,
       type
@@ -342,9 +387,28 @@ const deleteNotification = async (notificationId, branchId) => {
       throw new Error("Invalid notification ID or branchId format");
     }
 
-    const result = await Notification.findOneAndDelete({ 
-      _id: notificationId, 
-      branchId 
+    const current = await Notification.findOne({ _id: notificationId, branchId })
+      .select("_id tenantId branchId");
+    if (!current) {
+      throw new Error("Notification not found or does not belong to this branch");
+    }
+    if (!current.tenantId || !current.branchId) {
+      throw new Error("Notification has a missing tenant or branch association");
+    }
+
+    const branch = await Branch.findOne({
+      _id: current.branchId,
+      tenantId: current.tenantId,
+      isActive: true,
+    }).select("_id tenantId");
+    if (!branch) {
+      throw new Error("Notification has a missing, inactive, or mismatched branch association");
+    }
+
+    const result = await Notification.findOneAndDelete({
+      _id: notificationId,
+      branchId: branch._id,
+      tenantId: branch.tenantId,
     });
 
     if (!result) {
@@ -352,7 +416,7 @@ const deleteNotification = async (notificationId, branchId) => {
     }
 
     // Emit deletion event
-    safeEmit(branchId.toString(), "notification-deleted", {
+    await safeEmit(branch.tenantId, branch._id, "notification-deleted", {
       notificationId,
       deletedNotification: result
     });
@@ -382,13 +446,19 @@ const deleteMultipleNotifications = async (notificationIds, branchId) => {
       throw new Error(`Invalid notification IDs: ${invalidIds.join(', ')}`);
     }
 
+    const branch = await Branch.findOne({ _id: branchId, isActive: true }).select("_id tenantId");
+    if (!branch?.tenantId) {
+      throw new Error("Notification branch association is missing, inactive, or invalid");
+    }
+
     const result = await Notification.deleteMany({
       _id: { $in: notificationIds },
-      branchId
+      branchId: branch._id,
+      tenantId: branch.tenantId,
     });
 
     // Emit bulk deletion event
-    safeEmit(branchId.toString(), "notifications-bulk-deleted", {
+    await safeEmit(branch.tenantId, branch._id, "notifications-bulk-deleted", {
       deletedCount: result.deletedCount,
       requestedIds: notificationIds
     });

@@ -68,6 +68,8 @@ npm run lint
 npm run build
 ```
 
+The backend Socket.IO integration tests use a loopback-only MongoDB 7.0.14 instance with temporary test data and do not use `MONGO_URI`. The first run may download the MongoDB test binary; Windows runs require 2 GiB of free space in the temporary directory. To use an existing MongoDB 7.0.14 executable instead, set `MONGOMS_SYSTEM_BINARY` to its path. The integration tests refuse to run when `NODE_ENV=production`.
+
 The backend refuses to start in production when required secrets or service URLs are missing or still contain template placeholders.
 
 ## Production Checklist

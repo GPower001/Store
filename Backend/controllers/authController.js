@@ -8,6 +8,7 @@ import User from "../models/userModel.js";
 import Tenant from "../models/Tenant.js";
 import TokenBlacklist from "../models/TokenBlacklist.js"
 import { requestPasswordReset, resetPassword } from "../services/authService.js";
+import { disconnectUserSockets } from "../utils/socket.js";
 
 /**
  * @desc Register new tenant (SME signup)
@@ -196,6 +197,7 @@ export const logout = async (req, res) => {
       reason: "logout",
       expiresAt: new Date(decoded.exp * 1000) // Convert to milliseconds
     });
+    disconnectUserSockets(req.user.id);
 
     // Optional: Update user's last logout time
     await User.findByIdAndUpdate(req.user.id, {
